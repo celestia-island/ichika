@@ -1,27 +1,18 @@
 use anyhow::Result;
 
-use ichika::create_pool;
-
-#[derive(Debug, Clone)]
-struct Request {
-    a: i32,
-}
-
-#[derive(Debug, Clone)]
-struct Request2 {
-    b: i32,
-}
-
-#[derive(Debug, Clone)]
-struct Response {
-    c: i32,
-}
+use ichika::{create_node, ThreadNode, ThreadPod};
 
 fn main() -> Result<()> {
-    let res = create_pool(move |req: Request| Ok(Request2 { b: req.a + 1 }))
-        .pipe(move |req: Request2| Ok(Response { c: req.b + 1 }))
-        .run(Request { a: 1 })?;
-    println!("Final result: {:?}", res);
+    create_node!(PipeNode |req: String| -> usize {
+        req.len()
+    });
+
+    let mut node = PipeNode::default();
+    for i in 0..20 {
+        node.send(format!("Hello, World! {}", i))?;
+        let response = node.recv()?;
+        println!("{} -> {}", i, response);
+    }
 
     Ok(())
 }
