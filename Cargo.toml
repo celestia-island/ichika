@@ -1,18 +1,20 @@
-[package]
-name = "ichika"
+[workspace]
+members = ["packages/macros", "packages/types"]
+resolver = "2"
+
+[profile.release]
+lto = true
+opt-level = 'z'
+codegen-units = 1
+panic = "abort"
+
+[workspace.package]
+authors = ["langyo <langyo.china@gmail.com>"]
+
 version = "0.1.0"
 edition = "2021"
 
-publish = true
-authors = ["langyo <langyo.china@gmail.com>"]
-description = "A helper library for automatically constructing a thread pool that communicates via message pipes."
-license = "Apache-2.0"
-repository = "https://github.com/celestia-island/ichika"
-
-[lib]
-crate-type = ["rlib", "cdylib"]
-
-[dependencies]
+[workspace.dependencies]
 anyhow = "^1"
 async-trait = "^0.1"
 derive_more = { version = "^1", features = ["full"] }
@@ -21,5 +23,5 @@ futures = "^0.3"
 flume = "^0.11"
 
 num_cpus = "^1"
-tokio = { version = "^1", optional = true }
-async-std = { version = "^1", optional = true }
+tokio = "^1"
+async-std = "^1"

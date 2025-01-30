@@ -25,4 +25,4 @@ jobs:
             --no-confirm \
             --no-verify \
             --execute \
-            -p ichika
+            -p ichika-macros -p ichika

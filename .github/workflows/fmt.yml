@@ -3,7 +3,7 @@ on:
   pull_request:
     paths:
       - '.github/workflows/clippy.yml'
-      - 'src/**/*'
+      - 'packages/**/*'
       - 'examples/**/*'
       - 'Cargo.toml'
   push:

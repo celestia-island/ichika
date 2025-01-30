@@ -1,0 +1,27 @@
+[package]
+name = "ichika"
+version.workspace = true
+edition.workspace = true
+
+publish = true
+authors = ["langyo <langyo.china@gmail.com>"]
+description = "A helper library for automatically constructing a thread pool that communicates via message pipes."
+license = "Apache-2.0"
+repository = "https://github.com/celestia-island/ichika"
+
+[lib]
+crate-type = ["rlib", "cdylib"]
+
+[dependencies]
+_macros = { path = "../macros", version = "0.1.0", package = "ichika-macros" }
+
+anyhow = { workspace = true }
+async-trait = { workspace = true }
+derive_more = { workspace = true }
+
+futures = { workspace = true }
+flume = { workspace = true }
+
+num_cpus = { workspace = true, optional = true }
+tokio = { workspace = true, optional = true }
+async-std = { workspace = true, optional = true }
