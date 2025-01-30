@@ -1,16 +1,27 @@
-use proc_macro2::TokenStream;
-use quote::quote;
 use syn::{
-    braced, bracketed, parenthesized,
     parse::{Parse, ParseStream},
-    token, Expr, Ident, Token,
+    Token,
 };
 
+use super::ClosureMacros;
+
 #[derive(Debug, Clone)]
-pub struct PipeMacros {}
+pub struct PipeMacros {
+    closures: Vec<ClosureMacros>,
+}
 
 impl Parse for PipeMacros {
     fn parse(input: ParseStream) -> syn::Result<Self> {
-        Ok(Self {})
+        let mut closures = vec![];
+        while !input.is_empty() {
+            let closure = input.parse()?;
+            closures.push(closure);
+
+            if input.peek(Token![,]) {
+                input.parse::<Token![,]>()?;
+            }
+        }
+
+        Ok(Self { closures })
     }
 }

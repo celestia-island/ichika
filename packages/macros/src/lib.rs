@@ -11,5 +11,9 @@ use tools::PipeMacros;
 pub fn pipe(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as PipeMacros);
 
-    quote! {}.into()
+    // TODO: Not done yet
+    quote! {
+        vec!["todo"]
+    }
+    .into()
 }
