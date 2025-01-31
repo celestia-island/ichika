@@ -7,6 +7,7 @@ use syn::{
 
 #[derive(Debug, Clone)]
 pub struct ClosureMacros {
+    pub is_async: bool,
     pub arg: Ident,
     pub arg_ty: TypePath,
     pub ret_ty: TypePath,
@@ -15,7 +16,15 @@ pub struct ClosureMacros {
 
 impl Parse for ClosureMacros {
     fn parse(input: ParseStream) -> syn::Result<Self> {
-        // |ident: Ty| -> Ty { ... }
+        // async |ident: Ty| -> Ty { ... }
+        let is_async = {
+            if input.peek(Token![async]) {
+                input.parse::<Token![async]>()?;
+                true
+            } else {
+                false
+            }
+        };
 
         input.parse::<Token![|]>()?;
         let arg = input.parse()?;
@@ -31,6 +40,7 @@ impl Parse for ClosureMacros {
         let body = content.parse()?;
 
         Ok(Self {
+            is_async,
             arg,
             arg_ty,
             ret_ty,
