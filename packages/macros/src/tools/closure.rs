@@ -7,6 +7,7 @@ use syn::{
 
 #[derive(Debug, Clone)]
 pub struct ClosureMacros {
+    pub id: Option<Ident>, // TODO: Not done yet
     pub is_async: bool,
     pub arg: Ident,
     pub arg_ty: TypePath,
@@ -40,6 +41,7 @@ impl Parse for ClosureMacros {
         let body = content.parse()?;
 
         Ok(Self {
+            id: None,
             is_async,
             arg,
             arg_ty,

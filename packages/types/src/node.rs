@@ -13,14 +13,6 @@ pub trait ThreadNodeAsync {
     async fn run(req: Self::Request) -> Self::Response;
 }
 
-pub trait ThreadSwitchNode {
-    type Request: Clone;
-    type Response: ThreadNodeEnum;
-
-    fn run(req: Self::Request) -> Self::Response;
-}
-
 pub trait ThreadNodeEnum {
-    fn stage() -> usize;
-    fn id() -> usize;
+    fn id(&self) -> &str;
 }
