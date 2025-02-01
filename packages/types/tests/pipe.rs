@@ -49,29 +49,39 @@ fn create_pipe() -> Result<()> {
                 flume::Sender<::std::sync::Arc<<Self as ::ichika::pool::ThreadPool>::Request>>,
             rx_recv_response:
                 flume::Receiver<::std::sync::Arc<<Self as ::ichika::pool::ThreadPool>::Response>>,
+
+            tx_thread_usage_request: flume::Sender<()>,
+            rx_thread_usage_response: flume::Receiver<usize>,
+            tx_task_count_request: flume::Sender<String>,
+            rx_task_count_response: flume::Receiver<usize>,
         }
         impl ::ichika::pool::ThreadPool for _Pool {
             type Request = String;
             type Response = String;
 
-            fn send(&mut self, req: Self::Request) {
-                // TODO: Not done yet
-                todo!()
+            fn send(&self, req: Self::Request) -> Result<()> {
+                self.tx_send_request.send(::std::sync::Arc::new(req))?;
+                Ok(())
             }
 
-            fn recv(&mut self) -> Option<Self::Response> {
-                // TODO: Not done yet
-                todo!()
+            fn recv(&self) -> Result<Option<Self::Response>> {
+                self.rx_recv_response
+                    .try_recv()
+                    .map(|res| Some(res.as_ref().to_owned()))
+                    .map_err(|_| anyhow!("No response"))
             }
 
-            fn thread_usage(&self) -> usize {
-                // TODO: 通过管道通信获取目前线程池持有的总线程数量，记得加上守护线程
-                0
+            fn thread_usage(&self) -> Result<usize> {
+                self.tx_thread_usage_request.send(())?;
+                self.rx_thread_usage_response
+                    .recv()
+                    .map_err(|_| anyhow!("No response"))
             }
-            fn task_count(&self, stage: impl ToString) -> usize {
-                // TODO: 读取每个 pod 下持有 flume 句柄的积压数据条目数量
-                // TODO: 通过管道通信获取每个 pod 下的任务数量
-                0
+            fn task_count(&self, stage: impl ToString) -> Result<usize> {
+                self.tx_task_count_request.send(stage.to_string())?;
+                self.rx_task_count_response
+                    .recv()
+                    .map_err(|_| anyhow!("No response"))
             }
         }
 
@@ -79,7 +89,12 @@ fn create_pipe() -> Result<()> {
             pub fn new() -> Result<Self> {
                 let (tx_send_request, rx_send_request) = flume::unbounded();
                 let (tx_recv_response, rx_recv_response) = flume::unbounded();
+
                 let (tx_shutdown, rx_shutdown) = flume::bounded(1);
+                let (tx_thread_usage_request, rx_thread_usage_request) = flume::bounded(1);
+                let (tx_thread_usage_response, rx_thread_usage_response) = flume::bounded(1);
+                let (tx_task_count_request, rx_task_count_request) = flume::bounded(1);
+                let (tx_task_count_response, rx_task_count_response) = flume::bounded(1);
 
                 let daemon = std::thread::spawn(move || {
                     let mut pods = vec![];
@@ -87,6 +102,20 @@ fn create_pipe() -> Result<()> {
                     loop {
                         if rx_shutdown.try_recv().is_ok() {
                             break;
+                        }
+
+                        if rx_send_request.is_empty() {
+                            std::thread::sleep(std::time::Duration::from_millis(100));
+                            continue;
+                        }
+
+                        if rx_thread_usage_request.try_recv().is_ok() {
+                            // TODO: Not done yet
+                            tx_thread_usage_response.send(pods.len()).unwrap();
+                        }
+                        if rx_task_count_request.try_recv().is_ok() {
+                            // TODO: Not done yet
+                            tx_task_count_response.send(pods.len()).unwrap();
                         }
                     }
 
@@ -99,6 +128,11 @@ fn create_pipe() -> Result<()> {
 
                     tx_send_request,
                     rx_recv_response,
+
+                    tx_thread_usage_request,
+                    rx_thread_usage_response,
+                    tx_task_count_request,
+                    rx_task_count_response,
                 })
             }
         }

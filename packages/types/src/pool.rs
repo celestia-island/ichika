@@ -1,10 +1,12 @@
+use anyhow::Result;
+
 pub trait ThreadPool {
     type Request: Clone;
     type Response: Clone;
 
-    fn send(&mut self, req: Self::Request);
-    fn recv(&mut self) -> Option<Self::Response>;
+    fn send(&self, req: Self::Request) -> Result<()>;
+    fn recv(&self) -> Result<Option<Self::Response>>;
 
-    fn thread_usage(&self) -> usize;
-    fn task_count(&self, id: impl ToString) -> usize;
+    fn thread_usage(&self) -> Result<usize>;
+    fn task_count(&self, id: impl ToString) -> Result<usize>;
 }
