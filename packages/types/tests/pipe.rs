@@ -64,16 +64,6 @@ fn create_pipe() -> Result<()> {
                 todo!()
             }
 
-            fn set_task_limit(&mut self, limit: usize, stage: impl ToString) {
-                todo!()
-            }
-            fn set_task_limit_all_threads(&mut self, limit: usize) {
-                todo!()
-            }
-            fn set_thread_count_limit(&mut self, limit: usize) {
-                todo!()
-            }
-
             fn thread_usage(&self) -> usize {
                 // TODO: 通过管道通信获取目前线程池持有的总线程数量，记得加上守护线程
                 0

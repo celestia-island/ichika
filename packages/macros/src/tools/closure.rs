@@ -2,12 +2,14 @@ use proc_macro2::TokenStream;
 use syn::{
     braced,
     parse::{Parse, ParseStream},
-    Ident, Token, TypePath,
+    token, Ident, Token, TypePath,
 };
 
 #[derive(Debug, Clone)]
 pub struct ClosureMacros {
-    pub id: Option<Ident>, // TODO: Not done yet
+    pub id: Option<Ident>,
+    // TODO: Allow set limitation after id
+    //       like `xxx(max_threads_count: 1, max_tasks_count: 1) |ident: Ty| -> Ty { ... }`
     pub is_async: bool,
     pub arg: Ident,
     pub arg_ty: TypePath,
@@ -18,6 +20,16 @@ pub struct ClosureMacros {
 impl Parse for ClosureMacros {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         // async |ident: Ty| -> Ty { ... }
+        let id = {
+            if input.peek(Ident) {
+                let id = input.parse()?;
+                input.parse::<Token![:]>()?;
+                Some(id)
+            } else {
+                None
+            }
+        };
+
         let is_async = {
             if input.peek(Token![async]) {
                 input.parse::<Token![async]>()?;
@@ -41,7 +53,7 @@ impl Parse for ClosureMacros {
         let body = content.parse()?;
 
         Ok(Self {
-            id: None,
+            id,
             is_async,
             arg,
             arg_ty,

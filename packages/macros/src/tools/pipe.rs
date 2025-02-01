@@ -20,6 +20,12 @@ pub struct MatchNode {
 
 #[derive(Debug, Clone)]
 pub struct PipeMacros {
+    // TODO: Allow set limitation before closures
+    //       like `pipe![
+    //              (max_threads_count: 1, max_tasks_count: 1),
+    //              |ident: Ty| -> Ty { ... },
+    //              ...
+    //            ]`
     closures: Vec<PipeNode>,
 }
 
@@ -50,7 +56,7 @@ impl Parse for PipeMacros {
 
                 Ok(PipeNode::Map(nodes))
             } else {
-                Err(syn::Error::new(input.span(), "Expected closure or match"))
+                Ok(PipeNode::Closure(input.parse()?))
             }
         }
 
