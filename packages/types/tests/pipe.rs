@@ -1,6 +1,6 @@
 use anyhow::{anyhow, Result};
 
-use ichika::{pipe, pod::ThreadPod};
+use ichika::{pipe, pod::ThreadPod, pool::ThreadPool};
 
 #[test]
 fn create_pipe() -> Result<()> {
@@ -8,7 +8,11 @@ fn create_pipe() -> Result<()> {
     //     |req: String| -> Result<usize> { Ok(req.len()) },
     //     |req: usize| -> Result<String> { Ok(req.to_string()) }
     // ];
+    env_logger::builder()
+        .filter(None, log::LevelFilter::Info)
+        .init();
 
+    log::info!("Create pool");
     let pool = {
         struct _Stage0_0;
         struct _Stage1_0;
@@ -95,100 +99,89 @@ fn create_pipe() -> Result<()> {
                 let (tx_task_count_response, rx_task_count_response) = flume::bounded(1);
 
                 let (tx_pods_stage0_0_request, rx_pods_stage0_0_request) = flume::unbounded();
-                let (tx_pods_stage0_0_response, rx_pods_stage0_0_response) = flume::unbounded();
                 let (tx_pods_stage1_0_request, rx_pods_stage1_0_request) = flume::unbounded();
-                let (tx_pods_stage1_0_response, rx_pods_stage1_0_response) = flume::unbounded();
+                let (tx_pods_response, rx_pods_response) = flume::unbounded();
 
-                let daemon = std::thread::spawn({
-                    let tx_pods_stage0_0_request = tx_pods_stage0_0_request.clone();
-                    let rx_pods_stage1_0_response = rx_pods_stage1_0_response.clone();
+                let daemon = std::thread::spawn(move || {
+                    log::info!("Daemon thread is starting");
 
-                    move || {
-                        // TODO: Read from outside
-                        let max_thread_count = num_cpus::get();
-                        let mut pods_stage0_0 = vec![];
-                        let mut pods_stage1_0 = vec![];
+                    // TODO: Read from outside
+                    let max_thread_count = num_cpus::get();
+                    let mut pods_stage0_0 = vec![];
+                    let mut pods_stage1_0 = vec![];
 
-                        loop {
-                            // Clean all finished threads
-                            pods_stage0_0.retain(|pod: &ThreadPod<String, usize>| pod.is_alive());
-                            pods_stage1_0.retain(|pod: &ThreadPod<usize, String>| pod.is_alive());
+                    loop {
+                        // Clean all finished threads
+                        pods_stage0_0.retain(|pod: &ThreadPod| pod.is_alive());
+                        pods_stage1_0.retain(|pod: &ThreadPod| pod.is_alive());
 
-                            if !rx_pods_stage0_0_request.is_empty()
-                                && pods_stage0_0.len() < max_thread_count
-                            {
-                                let thread = std::thread::spawn({
-                                    let rx_request = rx_pods_stage0_0_request.clone();
-                                    let tx_response = tx_pods_stage0_0_response.clone();
+                        if !rx_pods_stage0_0_request.is_empty()
+                            && pods_stage0_0.len() < max_thread_count
+                        {
+                            log::info!("Spawn thread for Stage0_0");
+                            let thread = std::thread::spawn({
+                                let rx_request = rx_pods_stage0_0_request.clone();
+                                let tx_response = tx_pods_stage1_0_request.clone();
 
-                                    move || {
-                                        while let Ok(req) = rx_request.recv() {
-                                            let res = _Stage0_0::run(req);
-                                            tx_response.send(res).unwrap();
-                                        }
-                                        anyhow::Ok(())
+                                move || {
+                                    while let Ok(req) = rx_request.recv() {
+                                        let res = _Stage0_0::run(req);
+                                        tx_response.send(res).unwrap();
                                     }
-                                });
-                                pods_stage0_0.push(ThreadPod::new(
-                                    _Stage0_0::id(),
-                                    tx_pods_stage0_0_request.clone(),
-                                    rx_pods_stage0_0_response.clone(),
-                                    thread,
-                                ));
-                            }
-                            if !rx_pods_stage1_0_request.is_empty()
-                                && pods_stage1_0.len() < max_thread_count
-                            {
-                                let thread = std::thread::spawn({
-                                    let rx_request = rx_pods_stage1_0_request.clone();
-                                    let tx_response = tx_pods_stage1_0_response.clone();
-
-                                    move || {
-                                        while let Ok(req) = rx_request.recv() {
-                                            let res = _Stage1_0::run(req);
-                                            tx_response.send(res).unwrap();
-                                        }
-                                        anyhow::Ok(())
-                                    }
-                                });
-                                pods_stage1_0.push(ThreadPod::new(
-                                    _Stage1_0::id(),
-                                    tx_pods_stage1_0_request.clone(),
-                                    rx_pods_stage1_0_response.clone(),
-                                    thread,
-                                ));
-                            }
-
-                            if rx_thread_usage_request.try_recv().is_ok() {
-                                tx_thread_usage_response
-                                    .send(pods_stage0_0.len() + pods_stage1_0.len())
-                                    .unwrap();
-                            }
-                            if rx_task_count_request.try_recv().is_ok() {
-                                tx_task_count_response
-                                    .send(
-                                        pods_stage0_0.len()
-                                            + pods_stage1_0.len()
-                                            + rx_pods_stage0_0_request.len(),
-                                    )
-                                    .unwrap();
-                            }
-                            if rx_shutdown.try_recv().is_ok() {
-                                // Wait for all threads to finish, then the daemon thread exits
-                                while {
-                                    pods_stage0_0.iter().any(|pod| pod.is_alive())
-                                        || pods_stage1_0.iter().any(|pod| pod.is_alive())
-                                } {
-                                    std::thread::sleep(std::time::Duration::from_millis(100));
+                                    anyhow::Ok(())
                                 }
-                                break;
-                            }
+                            });
+                            pods_stage0_0.push(ThreadPod::new(_Stage0_0::id(), thread));
+                        }
+                        if !rx_pods_stage1_0_request.is_empty()
+                            && pods_stage1_0.len() < max_thread_count
+                        {
+                            log::info!("Spawn thread for Stage1_0");
+                            let thread = std::thread::spawn({
+                                let rx_request = rx_pods_stage1_0_request.clone();
+                                let tx_response = tx_pods_response.clone();
 
-                            std::thread::sleep(std::time::Duration::from_millis(100));
+                                move || {
+                                    while let Ok(req) = rx_request.recv() {
+                                        let res = _Stage1_0::run(req);
+                                        tx_response.send(res).unwrap();
+                                    }
+                                    anyhow::Ok(())
+                                }
+                            });
+                            pods_stage1_0.push(ThreadPod::new(_Stage1_0::id(), thread));
                         }
 
-                        anyhow::Ok(())
+                        if rx_thread_usage_request.try_recv().is_ok() {
+                            tx_thread_usage_response
+                                .send(pods_stage0_0.len() + pods_stage1_0.len())
+                                .unwrap();
+                        }
+                        if rx_task_count_request.try_recv().is_ok() {
+                            tx_task_count_response
+                                .send(
+                                    pods_stage0_0.len()
+                                        + pods_stage1_0.len()
+                                        + rx_pods_stage0_0_request.len(),
+                                )
+                                .unwrap();
+                        }
+                        if rx_shutdown.try_recv().is_ok() {
+                            // Wait for all threads to finish, then the daemon thread exits
+                            while {
+                                pods_stage0_0.iter().any(|pod| pod.is_alive())
+                                    || pods_stage1_0.iter().any(|pod| pod.is_alive())
+                            } {
+                                std::thread::sleep(std::time::Duration::from_millis(100));
+                            }
+                            break;
+                        }
+
+                        log::info!("Daemon thread is running");
+                        std::thread::sleep(std::time::Duration::from_millis(100));
                     }
+
+                    anyhow::Ok(())
                 });
 
                 Ok(Self {
@@ -196,7 +189,7 @@ fn create_pipe() -> Result<()> {
                     tx_shutdown,
 
                     tx_send_request: tx_pods_stage0_0_request,
-                    rx_recv_response: rx_pods_stage1_0_response,
+                    rx_recv_response: rx_pods_response,
 
                     tx_thread_usage_request,
                     rx_thread_usage_response,
@@ -215,6 +208,18 @@ fn create_pipe() -> Result<()> {
 
         _Pool::new()
     }?;
+    log::info!("Pool is created");
+
+    // Test case
+    // Generate some random string with random length
+    for _ in 0..10 {
+        let req = (11..20).map(|_| 'a').collect::<String>();
+        log::info!("Send: {:?}", req);
+        pool.send(req)?;
+    }
+    for _ in 0..10 {
+        log::info!("Receive: {:?}", pool.recv()?);
+    }
 
     Ok(())
 }

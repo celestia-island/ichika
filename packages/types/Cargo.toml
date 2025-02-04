@@ -26,5 +26,9 @@ num_cpus = { workspace = true, optional = true }
 tokio = { workspace = true, optional = true }
 async-std = { workspace = true, optional = true }
 
+[dev-dependencies]
+log = { workspace = true }
+env_logger = { workspace = true }
+
 [features]
 default = ["dep:num_cpus", "dep:tokio"]
