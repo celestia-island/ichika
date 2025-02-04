@@ -14,5 +14,5 @@ pub trait ThreadNodeAsync {
 }
 
 pub trait ThreadNodeEnum {
-    fn id(&self) -> &str;
+    fn id() -> &'static str;
 }
