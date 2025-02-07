@@ -22,6 +22,7 @@ fn create_pipe() -> Result<()> {
             type Response = usize;
 
             fn run(req: Self::Request) -> Self::Response {
+                std::thread::sleep(std::time::Duration::from_millis(100));
                 req.len()
             }
         }
@@ -30,6 +31,7 @@ fn create_pipe() -> Result<()> {
             type Response = String;
 
             fn run(req: Self::Request) -> Self::Response {
+                std::thread::sleep(std::time::Duration::from_millis(1000));
                 req.to_string()
             }
         }
@@ -90,7 +92,7 @@ fn create_pipe() -> Result<()> {
 
         impl _Pool {
             pub fn new() -> Result<Self> {
-                use ::ichika::{node::*, pod::ThreadPod};
+                use ichika::{node::*, pod::ThreadPod};
 
                 let (tx_shutdown, rx_shutdown) = flume::bounded(1);
                 let (tx_thread_usage_request, rx_thread_usage_request) = flume::bounded(1);
@@ -107,13 +109,24 @@ fn create_pipe() -> Result<()> {
 
                     // TODO: Read from outside
                     let max_thread_count = num_cpus::get();
+                    log::info!("max_thread_count: {}", max_thread_count);
                     let mut pods_stage0_0 = vec![];
                     let mut pods_stage1_0 = vec![];
 
                     loop {
                         // Clean all finished threads
+                        log::info!(
+                            "Before clean: Stage0_0: {}, Stage1_0: {}",
+                            pods_stage0_0.len(),
+                            pods_stage1_0.len()
+                        );
                         pods_stage0_0.retain(|pod: &ThreadPod| pod.is_alive());
                         pods_stage1_0.retain(|pod: &ThreadPod| pod.is_alive());
+                        log::info!(
+                            "After clean: Stage0_0: {}, Stage1_0: {}",
+                            pods_stage0_0.len(),
+                            pods_stage1_0.len()
+                        );
 
                         if !rx_pods_stage0_0_request.is_empty()
                             && pods_stage0_0.len() < max_thread_count
@@ -181,6 +194,7 @@ fn create_pipe() -> Result<()> {
                         std::thread::sleep(std::time::Duration::from_millis(100));
                     }
 
+                    log::info!("Daemon thread is exiting");
                     anyhow::Ok(())
                 });
 
@@ -212,14 +226,28 @@ fn create_pipe() -> Result<()> {
 
     // Test case
     // Generate some random string with random length
-    for _ in 0..10 {
-        let req = (11..20).map(|_| 'a').collect::<String>();
-        log::info!("Send: {:?}", req);
-        pool.send(req)?;
+    const TEST_CASE_MAX_COUNT: usize = 10;
+    for i in 0..TEST_CASE_MAX_COUNT {
+        for j in 0..TEST_CASE_MAX_COUNT {
+            let req = (i..TEST_CASE_MAX_COUNT)
+                .map(|_| ('a' as u8 + j as u8) as char)
+                .collect::<String>();
+            log::info!("Send: {:?}", req);
+            pool.send(req)?;
+            std::thread::sleep(std::time::Duration::from_millis(100));
+        }
+        std::thread::sleep(std::time::Duration::from_millis(100));
     }
-    for _ in 0..10 {
-        log::info!("Receive: {:?}", pool.recv()?);
+
+    loop {
+        let res = pool.recv()?;
+        if let Some(res) = res {
+            log::info!("Receive: {:?}", res);
+        } else {
+            break;
+        }
     }
+    log::info!("All responses are received");
 
     Ok(())
 }
