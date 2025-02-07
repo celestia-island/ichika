@@ -29,6 +29,7 @@ async-std = { workspace = true, optional = true }
 [dev-dependencies]
 log = { workspace = true }
 env_logger = { workspace = true }
+rand = "^0.9"
 
 [features]
 default = ["dep:num_cpus", "dep:tokio"]

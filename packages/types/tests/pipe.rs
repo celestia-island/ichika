@@ -22,7 +22,9 @@ fn create_pipe() -> Result<()> {
             type Response = usize;
 
             fn run(req: Self::Request) -> Self::Response {
-                std::thread::sleep(std::time::Duration::from_millis(100));
+                std::thread::sleep(std::time::Duration::from_millis(rand::random_range(
+                    500..3000,
+                )));
                 req.len()
             }
         }
@@ -31,7 +33,9 @@ fn create_pipe() -> Result<()> {
             type Response = String;
 
             fn run(req: Self::Request) -> Self::Response {
-                std::thread::sleep(std::time::Duration::from_millis(1000));
+                std::thread::sleep(std::time::Duration::from_millis(rand::random_range(
+                    500..3000,
+                )));
                 req.to_string()
             }
         }
@@ -129,7 +133,14 @@ fn create_pipe() -> Result<()> {
                         );
 
                         if !rx_pods_stage0_0_request.is_empty()
-                            && pods_stage0_0.len() < max_thread_count
+                            && pods_stage0_0.len() + pods_stage1_0.len() < max_thread_count
+                        // 这里的当前线程数量，默认情况下为根据该阶段任务及其后续所有任务的总数来决定
+                        // 例如，如果有三个阶段的当前任务数量 a b c，
+                        // 那么第一个任务的数量为 a + b + c，第二个任务的数量为 b + c，第三个任务的数量为 c
+                        // 这么做是为了保证每个阶段的任务数量是平均的，不会因为前一阶段的任务数量过多而导致后一阶段的任务数量过少
+                        // 后续开放的自定义数量的接口，设定的数值除了总线程数量和每个阶段的固定线程数外
+                        // 还可以设定为每个阶段不低于/不高于若干个线程
+                        // （会配合这里的 len() 累加，例如限制每一阶段至少预留两个，那么第一阶段就是 a + b + c + 2 * 2）
                         {
                             log::info!("Spawn thread for Stage0_0");
                             let thread = std::thread::spawn({
@@ -137,7 +148,7 @@ fn create_pipe() -> Result<()> {
                                 let tx_response = tx_pods_stage1_0_request.clone();
 
                                 move || {
-                                    while let Ok(req) = rx_request.recv() {
+                                    while let Ok(req) = rx_request.try_recv() {
                                         let res = _Stage0_0::run(req);
                                         tx_response.send(res).unwrap();
                                     }
@@ -155,7 +166,7 @@ fn create_pipe() -> Result<()> {
                                 let tx_response = tx_pods_response.clone();
 
                                 move || {
-                                    while let Ok(req) = rx_request.recv() {
+                                    while let Ok(req) = rx_request.try_recv() {
                                         let res = _Stage1_0::run(req);
                                         tx_response.send(res).unwrap();
                                     }
@@ -180,13 +191,6 @@ fn create_pipe() -> Result<()> {
                                 .unwrap();
                         }
                         if rx_shutdown.try_recv().is_ok() {
-                            // Wait for all threads to finish, then the daemon thread exits
-                            while {
-                                pods_stage0_0.iter().any(|pod| pod.is_alive())
-                                    || pods_stage1_0.iter().any(|pod| pod.is_alive())
-                            } {
-                                std::thread::sleep(std::time::Duration::from_millis(100));
-                            }
                             break;
                         }
 
@@ -194,6 +198,21 @@ fn create_pipe() -> Result<()> {
                         std::thread::sleep(std::time::Duration::from_millis(100));
                     }
 
+                    log::info!("Clean up all threads");
+                    loop {
+                        pods_stage0_0.retain(|pod| pod.is_alive());
+                        pods_stage1_0.retain(|pod| pod.is_alive());
+
+                        log::info!(
+                            "After clean: Stage0_0: {}, Stage1_0: {}",
+                            pods_stage0_0.len(),
+                            pods_stage1_0.len()
+                        );
+                        if pods_stage0_0.is_empty() && pods_stage1_0.is_empty() {
+                            break;
+                        }
+                        std::thread::sleep(std::time::Duration::from_millis(100));
+                    }
                     log::info!("Daemon thread is exiting");
                     anyhow::Ok(())
                 });
@@ -217,6 +236,7 @@ fn create_pipe() -> Result<()> {
             fn drop(&mut self) {
                 self.tx_shutdown.send(()).unwrap();
                 self.daemon.take().unwrap().join().unwrap().unwrap();
+                log::info!("Pool is dropped");
             }
         }
 
