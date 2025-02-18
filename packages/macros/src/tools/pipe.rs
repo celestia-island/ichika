@@ -26,7 +26,7 @@ pub struct PipeMacros {
     //              |ident: Ty| -> Ty { ... },
     //              ...
     //            ]`
-    closures: Vec<PipeNode>,
+    pub closures: Vec<PipeNode>,
 }
 
 impl Parse for PipeMacros {
