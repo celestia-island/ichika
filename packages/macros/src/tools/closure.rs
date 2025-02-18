@@ -2,7 +2,7 @@ use proc_macro2::TokenStream;
 use syn::{
     braced,
     parse::{Parse, ParseStream},
-    token, Ident, Token, TypePath,
+    Ident, Token, TypePath,
 };
 
 #[derive(Debug, Clone)]

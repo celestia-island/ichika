@@ -1,30 +1,18 @@
 use anyhow::Result;
-use proc_macro2::{Span, TokenStream};
+use proc_macro2::TokenStream;
 use quote::quote;
-use syn::Ident;
 
 use super::generate_closure;
-use crate::tools::{pipe::PipeNode, ClosureMacros};
+use crate::tools::pipe_flatten::PipeNodeFlatten;
 
-pub(crate) fn generate_closures(
-    prefix: impl ToString,
-    stages: Vec<PipeNode>,
-) -> Result<TokenStream> {
+pub(crate) fn generate_closures(stages: Vec<PipeNodeFlatten>) -> Result<TokenStream> {
     let closure_impl_list = stages
         .iter()
         .enumerate()
         .map(|(id, node)| {
             Ok(match node {
-                PipeNode::Closure(closure) => generate_closure(ClosureMacros {
-                    id: closure.id.clone().or_else(|| {
-                        Some(Ident::new(
-                            &format!("{}_{}", prefix.to_string(), id),
-                            Span::call_site(),
-                        ))
-                    }),
-                    ..closure.clone()
-                })?,
-                PipeNode::Map(nodes) => {
+                PipeNodeFlatten::Closure(closure) => generate_closure(closure.clone())?,
+                PipeNodeFlatten::Map(nodes) => {
                     todo!("递归调用 generate_closures 函数，生成多个闭包的实现")
                 }
             })

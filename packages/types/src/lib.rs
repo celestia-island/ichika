@@ -3,3 +3,5 @@ pub mod pod;
 pub mod pool;
 
 pub use _macros::pipe;
+pub use anyhow::Result;
+pub use flume;

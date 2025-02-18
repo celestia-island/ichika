@@ -14,6 +14,7 @@ fn create_pipe() -> Result<()> {
 
     log::info!("Create pool");
     let pool = {
+        // generate_closures
         struct _Stage0_0;
         struct _Stage1_0;
 
@@ -51,6 +52,7 @@ fn create_pipe() -> Result<()> {
             }
         }
 
+        // generate_pool
         struct _Pool {
             daemon: Option<::std::thread::JoinHandle<::anyhow::Result<()>>>,
             tx_shutdown: flume::Sender<()>,
@@ -96,7 +98,7 @@ fn create_pipe() -> Result<()> {
 
         impl _Pool {
             pub fn new() -> Result<Self> {
-                use ichika::{node::*, pod::ThreadPod};
+                use ::ichika::{node::*, pod::ThreadPod};
 
                 let (tx_shutdown, rx_shutdown) = flume::bounded(1);
                 let (tx_thread_usage_request, rx_thread_usage_request) = flume::bounded(1);

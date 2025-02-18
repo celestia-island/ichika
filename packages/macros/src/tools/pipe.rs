@@ -14,8 +14,8 @@ pub enum PipeNode {
 
 #[derive(Debug, Clone)]
 pub struct MatchNode {
-    condition: Expr,
-    body: PipeNode,
+    pub condition: Expr,
+    pub body: PipeNode,
 }
 
 #[derive(Debug, Clone)]
