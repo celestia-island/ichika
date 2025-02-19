@@ -7,6 +7,7 @@ use crate::tools::pipe_flatten::ClosureMacrosFlatten;
 pub(crate) fn generate_closure(closure: ClosureMacrosFlatten) -> Result<TokenStream> {
     let ClosureMacrosFlatten {
         id,
+        arg,
         arg_ty,
         ret_ty,
         body,
@@ -22,7 +23,7 @@ pub(crate) fn generate_closure(closure: ClosureMacrosFlatten) -> Result<TokenStr
         type Request = #arg_ty;
         type Response = #ret_ty;
 
-        fn run(&self, request: Self::Request) -> Self::Response {
+        fn run(#arg: Self::Request) -> ::ichika::Result<Self::Response> {
           #body
         }
       }
