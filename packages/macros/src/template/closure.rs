@@ -23,8 +23,8 @@ pub(crate) fn generate_closure(closure: ClosureMacrosFlatten) -> Result<TokenStr
         type Request = #arg_ty;
         type Response = #ret_ty;
 
-        fn run(#arg: Self::Request) -> ::ichika::Result<Self::Response> {
-          #body
+        fn run(#arg: Self::Request) -> ::ichika::Status<Self::Response, ::ichika::anyhow::Error> {
+          { #body }.into()
         }
       }
 
