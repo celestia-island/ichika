@@ -5,8 +5,8 @@ use quote::quote;
 use super::generate_closure;
 use crate::tools::pipe_flatten::PipeNodeFlatten;
 
-pub(crate) fn generate_closures(stages: Vec<PipeNodeFlatten>) -> Result<TokenStream> {
-    let closure_impl_list = stages
+pub(crate) fn generate_closures(steps: Vec<PipeNodeFlatten>) -> Result<TokenStream> {
+    let closure_impl_list = steps
         .iter()
         .enumerate()
         .map(|(id, node)| {

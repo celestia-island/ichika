@@ -17,13 +17,16 @@ pub fn pipe(input: TokenStream) -> TokenStream {
     let closure_impl_list = generate_closures(input.clone()).expect(
         "Failed to generate closure implementation list. Please check the error message above.",
     );
+    let pool_decl = template::generate_pool(input)
+        .expect("Failed to generate pool declaration. Please check the error message above.");
 
-    // TODO: Not done yet
     quote! {
         {
             #closure_impl_list
 
-            vec!["todo"]
+            #pool_decl
+
+            _Pool::new()
         }
     }
     .into()

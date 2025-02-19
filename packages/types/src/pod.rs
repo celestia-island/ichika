@@ -2,20 +2,20 @@ use anyhow::Result;
 use std::thread::JoinHandle;
 
 pub struct ThreadPod {
-    stage: String,
+    step: String,
     thread: JoinHandle<Result<()>>,
 }
 
 impl ThreadPod {
-    pub fn new(stage: impl ToString, thread: JoinHandle<Result<()>>) -> Self {
+    pub fn new(step: impl ToString, thread: JoinHandle<Result<()>>) -> Self {
         Self {
-            stage: stage.to_string(),
+            step: step.to_string(),
             thread,
         }
     }
 
-    pub fn stage(&self) -> &str {
-        &self.stage
+    pub fn step(&self) -> &str {
+        &self.step
     }
 
     pub fn is_alive(&self) -> bool {

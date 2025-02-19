@@ -8,8 +8,8 @@ use crate::tools::{
     ClosureMacros, PipeMacros,
 };
 
-fn rewrite_name(prefix: impl ToString, stage: PipeNode) -> Result<PipeNodeFlatten> {
-    Ok(match stage {
+fn rewrite_name(prefix: impl ToString, step: PipeNode) -> Result<PipeNodeFlatten> {
+    Ok(match step {
         PipeNode::Closure(closure) => {
             let id = closure
                 .id
@@ -57,7 +57,7 @@ pub(crate) fn rewrite_names(pipes: PipeMacros) -> Result<Vec<PipeNodeFlatten>> {
                 if let PipeNode::Closure(ClosureMacros { id: Some(id), .. }) = closure {
                     id.clone()
                 } else {
-                    Ident::new(&format!("_Stage_{}", index), Span::call_site())
+                    Ident::new(&format!("_step_{}", index), Span::call_site())
                 },
                 closure.clone(),
             )
