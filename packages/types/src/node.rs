@@ -1,10 +1,12 @@
-use anyhow::Result;
+use anyhow::Error;
+
+use crate::status::IntoStatus;
 
 pub trait ThreadNode {
     type Request: Clone;
     type Response: Clone;
 
-    fn run(req: Self::Request) -> Result<Self::Response>;
+    fn run(req: Self::Request) -> impl IntoStatus<Self::Response, Error>;
 }
 
 #[async_trait::async_trait]
@@ -12,7 +14,7 @@ pub trait ThreadNodeAsync {
     type Request: Clone;
     type Response: Clone;
 
-    async fn run(req: Self::Request) -> Result<Self::Response>;
+    async fn run(req: Self::Request) -> impl IntoStatus<Self::Response, Error>;
 }
 
 pub trait ThreadNodeEnum {

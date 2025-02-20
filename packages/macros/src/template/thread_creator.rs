@@ -4,10 +4,10 @@ use quote::quote;
 use syn::Ident;
 
 pub(crate) fn generate_thread_creator(
-    index: usize,
     rx_request: Ident,
     tx_response: Ident,
     target_step_ident: Ident,
+    target_step_pods_ident: Ident,
 ) -> Result<TokenStream> {
     // 这里的当前线程数量，默认情况下为根据该阶段任务及其后续所有任务的总数来决定
     // 例如，如果有三个阶段的当前任务数量 a b c，
@@ -19,7 +19,7 @@ pub(crate) fn generate_thread_creator(
 
     Ok(quote! {
         if !#rx_request.is_empty()
-            && pods.iter().skip(#index).map(|pods| pods.len()).reduce(|prev, next| prev + next).unwrap_or(0) < max_thread_count
+            && prev_pods_size + #target_step_pods_ident.len() < max_thread_count
         {
             let thread = std::thread::spawn({
                 let rx_request = #rx_request.clone();
@@ -29,16 +29,18 @@ pub(crate) fn generate_thread_creator(
                     while let Ok(req) = rx_request.try_recv() {
                         let res = #target_step_ident::run(req);
                         match res {
-                            Ok(res) => tx_response.send(res).unwrap(),
-                            Err(err) => {
-                                todo!("Switch to error channel: {:?}", err);
+                            ::ichika::Status::Next(res) => tx_response.send(res).unwrap(),
+                            _ => {
+                                todo!();
                             }
                         };
                     }
                     ::ichika::anyhow::Ok(())
                 }
             });
-            pods[#index].push(ThreadPod::new(#target_step_ident::id(), thread));
+            #target_step_pods_ident.push(ThreadPod::new(#target_step_ident::id(), thread));
         }
+
+        let prev_pods_size = prev_pods_size + #target_step_pods_ident.len();
     })
 }

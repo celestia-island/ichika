@@ -7,7 +7,7 @@ fn create_pipe() -> Result<()> {
     let pool = pipe![
         |req: String| -> usize { Ok(req.len()) },
         |req: usize| -> String { Ok(req.to_string()) }
-    ];
+    ]?;
     env_logger::builder()
         .filter(None, log::LevelFilter::Info)
         .init();

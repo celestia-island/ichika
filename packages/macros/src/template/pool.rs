@@ -59,7 +59,6 @@ pub(crate) fn generate_pool(closures: Vec<PipeNodeFlatten>) -> Result<TokenStrea
             }
         })
         .collect::<Vec<TokenStream>>();
-
     let has_all_pods_stop_code = pods_name
         .iter()
         .map(|name| {
@@ -68,26 +67,44 @@ pub(crate) fn generate_pool(closures: Vec<PipeNodeFlatten>) -> Result<TokenStrea
             }
         })
         .collect::<Vec<TokenStream>>();
+    let calculate_pods_len_code = pods_name
+        .iter()
+        .map(|name| {
+            quote! {
+                #name.len()
+            }
+        })
+        .collect::<Vec<TokenStream>>();
 
     let thread_creators = closures
         .iter()
-        .enumerate()
-        .zip(closures.iter().skip(1))
-        .map(|((index, step), next_step)| match step {
+        .zip(
+            closures
+                .iter()
+                .skip(1)
+                .map(|next_step| {
+                    Ident::new(
+                        &format!(
+                            "tx_{}",
+                            match next_step {
+                                PipeNodeFlatten::Closure(closure) => closure.id.clone(),
+                                PipeNodeFlatten::Map(_) => todo!(),
+                            }
+                        ),
+                        Span::call_site(),
+                    )
+                })
+                .chain([Ident::new("tx_pods_response", Span::call_site())])
+                .collect::<Vec<_>>()
+                .iter(),
+        )
+        .rev()
+        .map(|(step, tx_response)| match step {
             PipeNodeFlatten::Closure(closure) => generate_thread_creator(
-                index,
                 Ident::new(&format!("rx_{}", closure.id), Span::call_site()),
-                Ident::new(
-                    &format!(
-                        "tx_{}",
-                        match next_step {
-                            PipeNodeFlatten::Closure(closure) => closure.id.clone(),
-                            PipeNodeFlatten::Map(_) => todo!(),
-                        }
-                    ),
-                    Span::call_site(),
-                ),
+                tx_response.to_owned(),
                 closure.id.clone(),
+                Ident::new(&format!("pods_{}", closure.id), Span::call_site()),
             ),
             PipeNodeFlatten::Map(_) => todo!(),
         })
@@ -105,8 +122,10 @@ pub(crate) fn generate_pool(closures: Vec<PipeNodeFlatten>) -> Result<TokenStrea
     };
 
     Ok(quote! {
+        use ::ichika::status::IntoStatus;
+
         struct _Pool {
-            daemon: Option<::std::thread::JoinHandle<::ichika::Result<()>>>,
+            daemon: Option<::std::thread::JoinHandle<::ichika::anyhow::Result<()>>>,
             tx_shutdown: ::ichika::flume::Sender<()>,
 
             tx_send_request: ::ichika::flume::Sender<<Self as ::ichika::pool::ThreadPool>::Request>,
@@ -114,7 +133,7 @@ pub(crate) fn generate_pool(closures: Vec<PipeNodeFlatten>) -> Result<TokenStrea
 
             tx_thread_usage_request: ::ichika::flume::Sender<()>,
             rx_thread_usage_response: ::ichika::flume::Receiver<usize>,
-            tx_task_count_request: ::ichika::flume::Sender<()>,
+            tx_task_count_request: ::ichika::flume::Sender<String>,
             rx_task_count_response: ::ichika::flume::Receiver<usize>,
         }
 
@@ -122,12 +141,12 @@ pub(crate) fn generate_pool(closures: Vec<PipeNodeFlatten>) -> Result<TokenStrea
             type Request = #pool_request_ty;
             type Response = #pool_response_ty;
 
-            fn send(&self, req: Self::Request) -> ::ichika::Result<()> {
+            fn send(&self, req: Self::Request) -> ::ichika::anyhow::Result<()> {
                 self.tx_send_request.send(req)?;
                 Ok(())
             }
 
-            fn recv(&self) -> ::ichika::Result<Option<Self::Response>> {
+            fn recv(&self) -> ::ichika::anyhow::Result<Option<Self::Response>> {
                 Ok(self
                     .rx_recv_response
                     .try_recv()
@@ -135,17 +154,17 @@ pub(crate) fn generate_pool(closures: Vec<PipeNodeFlatten>) -> Result<TokenStrea
                     .unwrap_or_default())
             }
 
-            fn thread_usage(&self) -> ::ichika::Result<usize> {
+            fn thread_usage(&self) -> ::ichika::anyhow::Result<usize> {
                 self.tx_thread_usage_request.send(())?;
                 self.rx_thread_usage_response
                     .recv()
-                    .map_err(|_| ::ichika::anyhow!("No response"))
+                    .map_err(|_| ::ichika::anyhow::anyhow!("No response"))
             }
-            fn task_count(&self, stage: impl ToString) -> ::ichika::Result<usize> {
+            fn task_count(&self, stage: impl ToString) -> ::ichika::anyhow::Result<usize> {
                 self.tx_task_count_request.send(stage.to_string())?;
                 self.rx_task_count_response
                     .recv()
-                    .map_err(|_| ::ichika::anyhow!("No response"))
+                    .map_err(|_| ::ichika::anyhow::anyhow!("No response"))
             }
         }
 
@@ -162,45 +181,50 @@ pub(crate) fn generate_pool(closures: Vec<PipeNodeFlatten>) -> Result<TokenStrea
                 #( #tx_rx_request_flume_unbounded )*
                 let (tx_pods_response, rx_pods_response) = ::ichika::flume::unbounded();
 
-                let daemon = std::thread::spawn(move || {
-                    // TODO: Read from outside
-                    let max_thread_count = num_cpus::get();
-                    #pods_init_let
+                let daemon = std::thread::spawn({
+                    let #flume_request_unbounded_first_ident = #flume_request_unbounded_first_ident.clone();
 
-                    loop {
-                        #( #clean_pods_code )*
+                    move || {
+                        // TODO: Read from outside
+                        let max_thread_count = num_cpus::get();
+                        #pods_init_let
 
-                        #(#thread_creators)*
+                        loop {
+                            #( #clean_pods_code )*
 
-                        if rx_thread_usage_request.try_recv().is_ok() {
-                            tx_thread_usage_response
-                                .send(pods.iter().map(|pods| pods.len()).reduce(|prev, next| prev + next)).unwrap_or(0)
-                                .unwrap();
+                            let prev_pods_size = 0;
+                            #( #thread_creators )*
+
+                            if rx_thread_usage_request.try_recv().is_ok() {
+                                tx_thread_usage_response
+                                    .send(#( #calculate_pods_len_code )+*)
+                                    .unwrap();
+                            }
+                            if rx_task_count_request.try_recv().is_ok() {
+                                tx_task_count_response
+                                    .send(
+                                        #( #calculate_pods_len_code )+*
+                                            + #flume_request_unbounded_first_ident.len(),
+                                    )
+                                    .unwrap();
+                            }
+                            if rx_shutdown.try_recv().is_ok() {
+                                break;
+                            }
+
+                            std::thread::sleep(std::time::Duration::from_millis(100));
                         }
-                        if rx_task_count_request.try_recv().is_ok() {
-                            tx_task_count_response
-                                .send(
-                                    pods.iter().map(|pods| pods.len()).reduce(|prev, next| prev + next).unwrap_or(0)
-                                        + flume_request_unbounded[0].1.len(),
-                                )
-                                .unwrap();
-                        }
-                        if rx_shutdown.try_recv().is_ok() {
-                            break;
-                        }
 
-                        std::thread::sleep(std::time::Duration::from_millis(100));
+                        loop {
+                            #( #clean_pods_code )*
+
+                            if #(#has_all_pods_stop_code)&&* {
+                                break;
+                            }
+                            std::thread::sleep(std::time::Duration::from_millis(100));
+                        }
+                        ::ichika::anyhow::Ok(())
                     }
-
-                    loop {
-                        #( #clean_pods_code )*
-
-                        if #(#has_all_pods_stop_code)&&* {
-                            break;
-                        }
-                        std::thread::sleep(std::time::Duration::from_millis(100));
-                    }
-                    ::ichika::anyhow::Ok(())
                 });
 
                 Ok(Self {

@@ -9,17 +9,27 @@ pub enum Status<T, E> {
     Exit,
 }
 
-impl<T> From<T> for Status<T, ()> {
-    fn from(value: T) -> Self {
-        Status::Next(value)
+pub trait IntoStatus<T, E> {
+    fn into_status(self) -> Status<T, E>;
+}
+
+impl<T> IntoStatus<T, ()> for T {
+    fn into_status(self) -> Status<T, ()> {
+        Status::Next(self)
     }
 }
 
-impl<T, E> From<Result<T, E>> for Status<T, E> {
-    fn from(result: Result<T, E>) -> Self {
-        match result {
+impl<T, E> IntoStatus<T, E> for Result<T, E> {
+    fn into_status(self) -> Status<T, E> {
+        match self {
             Ok(value) => Status::Next(value),
             Err(error) => Status::Panic(error),
         }
+    }
+}
+
+impl<T, E> IntoStatus<T, E> for Status<T, E> {
+    fn into_status(self) -> Status<T, E> {
+        self
     }
 }
