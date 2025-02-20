@@ -13,7 +13,7 @@ repository = "https://github.com/celestia-island/ichika"
 crate-type = ["rlib", "cdylib"]
 
 [dependencies]
-_macros = { path = "../macros", version = "0.1.0", package = "ichika-macros" }
+_macros = { path = "../macros", version = "0.1.1", package = "ichika-macros" }
 
 anyhow = { workspace = true }
 async-trait = { workspace = true }
