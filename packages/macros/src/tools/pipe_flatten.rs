@@ -5,8 +5,8 @@ use syn::{Expr, Ident, TypePath};
 pub struct ClosureMacrosFlatten {
     pub id: Ident,
     pub is_async: bool,
-    pub arg: Ident,
-    pub arg_ty: TypePath,
+    pub arg: Vec<Ident>,
+    pub arg_ty: Vec<TypePath>,
     pub ret_ty: TypePath,
     pub body: TokenStream,
 }

@@ -14,6 +14,22 @@ pub(crate) fn generate_closure(closure: ClosureMacrosFlatten) -> Result<TokenStr
         ..
     } = closure;
     let id_raw = quote! { stringify!(#id) };
+    let arg = if arg.len() == 1 {
+        let arg = arg.first().ok_or(anyhow!(
+            "Closure argument is empty, please provide at least one argument"
+        ))?;
+        quote! { #arg }
+    } else {
+        quote! { (#(#arg),*) }
+    };
+    let arg_ty = if arg_ty.len() == 1 {
+        let arg_ty = arg_ty.first().ok_or(anyhow!(
+            "Closure argument type is empty, please provide at least one argument type"
+        ))?;
+        quote! { #arg_ty }
+    } else {
+        quote! { (#(#arg_ty),*) }
+    };
 
     if closure.is_async {
         if cfg!(feature = "tokio") {
@@ -25,11 +41,8 @@ pub(crate) fn generate_closure(closure: ClosureMacrosFlatten) -> Result<TokenStr
                 type Response = #ret_ty;
 
                 fn run(#arg: Self::Request) -> ::ichika::Status<Self::Response, ::ichika::anyhow::Error> {
-                  let rt = tokio::runtime::Builder::new_multi_thread()
-                    .enable_all()
-                    .build()
-                    .unwrap();
-                  rt.block_on(async move { { #body }.await.into_status() })
+                  let rt = ::ichika::tokio::runtime::Runtime::new().unwrap();
+                  rt.block_on(async move { #body }).into_status()
                 }
               }
 
@@ -48,7 +61,7 @@ pub(crate) fn generate_closure(closure: ClosureMacrosFlatten) -> Result<TokenStr
                 type Response = #ret_ty;
 
                 fn run(#arg: Self::Request) -> ::ichika::Status<Self::Response, ::ichika::anyhow::Error> {
-                  async_std::task::block_on(async move { { #body }.await.into_status() })
+                  ::ichika::async_std::task::block_on(async move { #body }).into_status()
                 }
               }
 

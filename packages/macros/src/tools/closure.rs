@@ -1,8 +1,8 @@
 use proc_macro2::TokenStream;
 use syn::{
-    braced,
+    braced, parenthesized,
     parse::{Parse, ParseStream},
-    Ident, Token, TypePath,
+    token, Ident, Token, TypePath,
 };
 
 #[derive(Debug, Clone)]
@@ -11,8 +11,8 @@ pub struct ClosureMacros {
     // TODO: Allow set limitation after id
     //       like `xxx(max_threads_count: 1, max_tasks_count: 1) |ident: Ty| -> Ty { ... }`
     pub is_async: bool,
-    pub arg: Ident,
-    pub arg_ty: TypePath,
+    pub arg: Vec<Ident>,
+    pub arg_ty: Vec<TypePath>,
     pub ret_ty: TypePath,
     pub body: TokenStream,
 }
@@ -39,10 +39,29 @@ impl Parse for ClosureMacros {
             }
         };
 
+        let mut arg = vec![];
+        let mut arg_ty = vec![];
         input.parse::<Token![|]>()?;
-        let arg = input.parse()?;
-        input.parse::<Token![:]>()?;
-        let arg_ty = input.parse()?;
+        if input.peek(token::Paren) {
+            let content;
+            parenthesized!(content in input);
+
+            while !content.is_empty() {
+                arg.push(content.parse()?);
+                content.parse::<Token![:]>()?;
+                arg_ty.push(content.parse()?);
+
+                if content.is_empty() {
+                    break;
+                }
+
+                content.parse::<Token![,]>()?;
+            }
+        } else {
+            arg.push(input.parse()?);
+            input.parse::<Token![:]>()?;
+            arg_ty.push(input.parse()?);
+        }
         input.parse::<Token![|]>()?;
 
         input.parse::<Token![->]>()?;

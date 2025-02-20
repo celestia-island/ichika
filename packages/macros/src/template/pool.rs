@@ -113,11 +113,38 @@ pub(crate) fn generate_pool(closures: Vec<PipeNodeFlatten>) -> Result<TokenStrea
         .collect::<Result<Vec<TokenStream>>>()?;
 
     let pool_request_ty = match closures.first().ok_or(anyhow!("No closure"))? {
-        PipeNodeFlatten::Closure(closure) => closure.arg_ty.clone(),
+        PipeNodeFlatten::Closure(closure) => {
+            if closure.arg_ty.len() == 1 {
+                let arg_ty = closure
+                    .arg_ty
+                    .first()
+                    .cloned()
+                    .ok_or(anyhow!("First node is closure but arg_ty is empty"))?;
+                quote! { #arg_ty }
+            } else {
+                let arg_ty = closure.arg_ty.clone();
+                quote! { (#( #arg_ty ),*) }
+            }
+        }
         PipeNodeFlatten::Map(_) => return Err(anyhow!("First node is not closure")),
     };
     let pool_response_ty = match closures.last().ok_or(anyhow!("No closure"))? {
-        PipeNodeFlatten::Closure(closure) => closure.ret_ty.clone(),
+        PipeNodeFlatten::Closure(closure) => {
+            if closure.ret_ty.path.segments.len() == 1 {
+                let ret_ty = closure
+                    .ret_ty
+                    .clone()
+                    .path
+                    .segments
+                    .first()
+                    .cloned()
+                    .ok_or(anyhow!("Last node is closure but ret_ty is empty"))?;
+                quote! { #ret_ty }
+            } else {
+                let ret_ty = closure.ret_ty.clone();
+                quote! { #ret_ty }
+            }
+        }
         PipeNodeFlatten::Map(_) => return Err(anyhow!("Last node is not closure")),
     };
 

@@ -1,6 +1,5 @@
 use anyhow::Result;
-
-use ichika::{pipe, pool::ThreadPool};
+use ichika::prelude::*;
 
 #[test]
 fn create_pipe() -> Result<()> {
