@@ -27,7 +27,7 @@ fn create_async_pipe() -> Result<()> {
         );
         Ok(())
       }
-    ];
+    ]?;
 
     Ok(())
 }

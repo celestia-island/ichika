@@ -11,7 +11,7 @@ fn create_named_pipe() -> Result<()> {
             _ => test4: |req: usize| -> String { Ok(req.to_string()) },
         }
         test2: async |req: usize| -> String { Ok(req.to_string()) }
-    ];
+    ]?;
 
     Ok(())
 }

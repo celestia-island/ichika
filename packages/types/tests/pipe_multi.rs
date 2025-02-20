@@ -5,7 +5,7 @@ use ichika::pipe;
 #[test]
 fn create_pipe_with_result_target() -> Result<()> {
     let pool = pipe![
-        try |req: String| -> usize {
+        |req: String| -> usize {
             if req.len() > 10 {
                 Ok(1)
             } else {
@@ -14,7 +14,7 @@ fn create_pipe_with_result_target() -> Result<()> {
         },
         catch |req: &str| -> String { Ok(req.to_string()) },
         |req: usize| -> String { Ok(req.to_string()) }
-    ];
+    ]?;
 
     Ok(())
 }
