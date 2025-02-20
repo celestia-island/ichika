@@ -32,4 +32,6 @@ env_logger = { workspace = true }
 rand = "^0.9"
 
 [features]
-default = ["dep:num_cpus", "dep:tokio"]
+default = ["dep:num_cpus", "tokio"]
+tokio = ["dep:tokio", "_macros/tokio"]
+async-std = ["dep:async-std", "_macros/async-std"]

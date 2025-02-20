@@ -20,3 +20,7 @@ derive_more = { workspace = true }
 syn = { version = "^2", features = ["full"] }
 proc-macro2 = { version = "^1", features = ["span-locations"] }
 quote = "^1"
+
+[features]
+tokio = []
+async-std = []
