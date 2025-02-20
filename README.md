@@ -15,23 +15,19 @@ The name `ichika` comes from the character [ichika](https://bluearchive.wiki/wik
 ## Quick Start
 
 ```rust
+use ichika::prelude::*;
+
 let pool = pipe! [
-  async |(name: String, checksum: Vec<u8>, url: String)|  {
-    Ok((name, id, reqwest::get(url).await?))
+  async |(name: String, url: String)| -> anyhow::Result<(String, bytes::Bytes))> {
+    Ok((name, id, reqwest::get(url).await?.bytes().await?))
   },
-  |(name, checksum, buffer)| {
-    let mut sha3 = sha3::Sha3_256::new();
-    sha3.update(&buffer);
-    ensure!(sha3[..] == checksum, "oops!");
-    Ok((name, buffer))
-  },
-  |(name, buffer)| {
+  |(name: String, buffer: bytes::Bytes)| -> anyhow::Result<(String, bytes::Bytes)> {
     let mut decoder = flate2::read::GzDecoder::new();
     let mut ret = vec![];
     decoder.read_to_end(&mut ret)?;
-    Ok((name, data))
+    Ok((name, ret.into()))
   },
-  async |(name, data)| {
+  async |(name: String, data: bytes::Bytes)| -> anyhow::Result<()> {
     tokio::fs::write(
       format!("./{name}.dat"),
       &data
@@ -51,7 +47,7 @@ for i in 0..10 {
 
 ## TODO
 
-- [ ] `async`, including `tokio` and `async-std`.
+- [x] `async`, including `tokio` and `async-std`.
 - [ ] Named task.
 - [ ] Limit steps' thread usage.
 - [ ] Multiple target `match` with any depth.
