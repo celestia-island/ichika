@@ -12,18 +12,21 @@ pub(crate) fn generate_routing_table(
     closure_names: &[Ident],
     closure_input_types: &[TypePath],
 ) -> TokenStream {
-    let entries = closure_names.iter().zip(closure_input_types.iter()).filter_map(|(name, input_ty)| {
-        // Check if input type matches current output type
-        if type_matches(input_ty, current_output_type) {
-            let tx_ident = format_ident!("tx_{}", name);
-            let name_str = name.to_string();
-            Some(quote! {
-                routing_table.insert(#name_str, #tx_ident.clone());
-            })
-        } else {
-            None
-        }
-    });
+    let entries = closure_names
+        .iter()
+        .zip(closure_input_types.iter())
+        .filter_map(|(name, input_ty)| {
+            // Check if input type matches current output type
+            if type_matches(input_ty, current_output_type) {
+                let tx_ident = format_ident!("tx_{}", name);
+                let name_str = name.to_string();
+                Some(quote! {
+                    routing_table.insert(#name_str, #tx_ident.clone());
+                })
+            } else {
+                None
+            }
+        });
 
     quote! {
         let mut routing_table: ::std::collections::HashMap<&'static str, ::ichika::flume::Sender<#current_output_type>> = ::std::collections::HashMap::new();
@@ -36,8 +39,16 @@ pub(crate) fn generate_routing_table(
 pub(crate) fn type_matches(a: &TypePath, b: &TypePath) -> bool {
     // Compare the path segments of both types
     // This handles simple types like String, usize, as well as pathed types
-    a.path.segments.iter().map(|seg| seg.ident.to_string()).collect::<Vec<_>>()
-        == b.path.segments.iter().map(|seg| seg.ident.to_string()).collect::<Vec<_>>()
+    a.path
+        .segments
+        .iter()
+        .map(|seg| seg.ident.to_string())
+        .collect::<Vec<_>>()
+        == b.path
+            .segments
+            .iter()
+            .map(|seg| seg.ident.to_string())
+            .collect::<Vec<_>>()
 }
 
 pub(crate) fn generate_thread_creator(

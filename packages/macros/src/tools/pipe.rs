@@ -1,7 +1,7 @@
 use syn::{
     braced, parenthesized,
     parse::{Parse, ParseStream},
-    Expr, Token, Ident, token,
+    token, Expr, Ident, Token,
 };
 
 use super::closure::ThreadConstraints;
@@ -42,7 +42,12 @@ impl Parse for PipeMacros {
                 match key.to_string().as_str() {
                     "max_threads" => max_threads = Some(value),
                     "min_threads" => min_threads = Some(value),
-                    _ => return Err(syn::Error::new(key.span(), format!("Unknown constraint: {}", key))),
+                    _ => {
+                        return Err(syn::Error::new(
+                            key.span(),
+                            format!("Unknown constraint: {}", key),
+                        ))
+                    }
                 }
 
                 if content.is_empty() {
@@ -56,7 +61,10 @@ impl Parse for PipeMacros {
                 input.parse::<Token![,]>()?;
             }
 
-            Some(ThreadConstraints { max_threads, min_threads })
+            Some(ThreadConstraints {
+                max_threads,
+                min_threads,
+            })
         } else {
             None
         };
@@ -99,6 +107,9 @@ impl Parse for PipeMacros {
             }
         }
 
-        Ok(Self { global_constraints, closures })
+        Ok(Self {
+            global_constraints,
+            closures,
+        })
     }
 }

@@ -102,7 +102,7 @@ fn test_error_handling_with_panic() -> Result<()> {
 
     // Error case - will panic
     pool.send("error:invalid".to_string())?;
-    std::thread::sleep(std::time::Duration::from_millis(200));  // Allow thread recovery time
+    std::thread::sleep(std::time::Duration::from_millis(200)); // Allow thread recovery time
 
     // Another normal case
     pool.send("success".to_string())?;
