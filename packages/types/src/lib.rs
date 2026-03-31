@@ -4,7 +4,7 @@ pub mod pool;
 pub mod status;
 
 pub use _macros::pipe;
-pub use status::Status;
+pub use status::{retry, retry_with, RetryPolicy, Status};
 
 pub use anyhow;
 pub use flume;

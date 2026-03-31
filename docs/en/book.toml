@@ -1,0 +1,17 @@
+[book]
+title = "Ichika Documentation"
+description = "A Rust procedural macro library for building thread pool based pipelines with error handling and retry semantics"
+authors = ["celestia-island"]
+language = "en"
+src = "."
+
+[build]
+build-dir = "../../target/docs/en"
+
+[output.html]
+default-theme = "light"
+preferred-dark-theme = "ayu"
+git-repository-url = "https://github.com/celestia-island/ichika"
+edit-url-template = "https://github.com/celestia-island/ichika/edit/next/docs/en/{path}"
+additional-js = ["../theme/lang-switcher.js"]
+additional-css = ["../theme/lang-switcher.css"]

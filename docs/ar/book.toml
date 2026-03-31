@@ -1,0 +1,17 @@
+[book]
+title = "وثائق Ichika"
+description = "مكتبة Rust إجرائية لإنشاء خطوط أنابيب بناءً على مجموعات مؤشرات الترابط"
+authors = ["celestia-island"]
+language = "ar"
+src = "."
+
+[build]
+build-dir = "../../target/docs/ar"
+
+[output.html]
+default-theme = "light"
+preferred-dark-theme = "ayu"
+git-repository-url = "https://github.com/celestia-island/ichika"
+edit-url-template = "https://github.com/celestia-island/ichika/edit/next/docs/ar/{path}"
+additional-js = ["../theme/lang-switcher.js"]
+additional-css = ["../theme/lang-switcher.css"]

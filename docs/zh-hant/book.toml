@@ -1,0 +1,17 @@
+[book]
+title = "Ichika 文檔"
+description = "一個用於構建基於線程池的管道的 Rust 過程宏庫，支援錯誤處理和重試語義"
+authors = ["celestia-island"]
+language = "zh-hant"
+src = "."
+
+[build]
+build-dir = "../../target/docs/zh-hant"
+
+[output.html]
+default-theme = "light"
+preferred-dark-theme = "ayu"
+git-repository-url = "https://github.com/celestia-island/ichika"
+edit-url-template = "https://github.com/celestia-island/ichika/edit/next/docs/zh-hant/{path}"
+additional-js = ["../theme/lang-switcher.js"]
+additional-css = ["../theme/lang-switcher.css"]

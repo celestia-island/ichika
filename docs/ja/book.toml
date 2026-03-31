@@ -1,0 +1,17 @@
+[book]
+title = "Ichika ドキュメント"
+description = "スレッドプールベースのパイプラインを構築するためのRust手続き型マクロライブラリ"
+authors = ["celestia-island"]
+language = "ja"
+src = "."
+
+[build]
+build-dir = "../../target/docs/ja"
+
+[output.html]
+default-theme = "light"
+preferred-dark-theme = "ayu"
+git-repository-url = "https://github.com/celestia-island/ichika"
+edit-url-template = "https://github.com/celestia-island/ichika/edit/next/docs/ja/{path}"
+additional-js = ["../theme/lang-switcher.js"]
+additional-css = ["../theme/lang-switcher.css"]
