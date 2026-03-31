@@ -18,6 +18,7 @@ pub struct ClosureMacrosFlatten {
 pub enum PipeNodeFlatten {
     Closure(ClosureMacrosFlatten),
     Map(Vec<MatchNodeFlatten>),
+    Dispatcher(DispatcherMacrosFlatten),
 }
 
 #[derive(Debug, Clone)]
@@ -25,4 +26,19 @@ pub struct MatchNodeFlatten {
     #[allow(dead_code)]
     pub condition: Expr,
     pub body: PipeNodeFlatten,
+}
+
+#[derive(Debug, Clone)]
+pub struct DispatcherMacrosFlatten {
+    pub id: Ident,
+    pub input_ty: TypePath,
+    pub output_ty: TypePath,
+    pub branches: Vec<BranchInfo>,
+}
+
+#[derive(Debug, Clone)]
+pub struct BranchInfo {
+    #[allow(dead_code)]
+    pub condition: Expr,
+    pub target_id: Ident,
 }
