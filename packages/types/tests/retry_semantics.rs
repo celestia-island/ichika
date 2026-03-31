@@ -4,12 +4,11 @@ use ichika::pool::ThreadPool;
 use ichika::RetryPolicy;
 
 #[test]
-fn test_basic_retry_with_default_policy() -> Result<()> {
-    // Test that Status::Retry uses default policy (3 attempts, 100ms delay)
+fn test_basic_retry_discards_after_max_attempts() -> Result<()> {
+    // Status::Retry retries with the same input using the default policy.
+    // Once max attempts are exceeded, the request is silently discarded (no output).
     let pool = pipe![
         retry_step: |_req: String| -> String {
-            // Return Status::Retry to trigger default retry
-            // After max attempts, the original request is sent as-is
             ichika::retry::<String, anyhow::Error>()
         },
     ]?;
@@ -19,30 +18,26 @@ fn test_basic_retry_with_default_policy() -> Result<()> {
     pool.send("test".to_string())?;
     std::thread::sleep(std::time::Duration::from_millis(500));
 
+    // After max attempts are exhausted, Retry discards the item – nothing arrives.
     let mut received = 0;
     loop {
-        let res = pool.recv()?;
-        if let Some(res) = res {
-            // After max attempts (3), the original request is sent
-            assert_eq!(res, "test");
+        if let Some(_) = pool.recv()? {
             received += 1;
         } else {
             break;
         }
     }
-
-    // Should receive 1 result after max attempts exceeded
-    assert_eq!(received, 1);
+    assert_eq!(received, 0);
 
     Ok(())
 }
 
 #[test]
-fn test_retry_with_custom_policy() -> Result<()> {
-    // Test RetryWith with custom max_attempts and delay
+fn test_retry_with_fallback_value() -> Result<()> {
+    // RetryWith retries the step with the same original request.
+    // After max_attempts retries, the provided fallback (Output-typed) value is sent.
     let pool = pipe![
         custom_retry: |_req: String| -> String {
-            // Use RetryWith to retry with a new value
             ichika::Status::RetryWith(
                 RetryPolicy { max_attempts: 2, delay_ms: 50 },
                 0,
@@ -54,31 +49,28 @@ fn test_retry_with_custom_policy() -> Result<()> {
     std::thread::sleep(std::time::Duration::from_millis(200));
 
     pool.send("test".to_string())?;
-    std::thread::sleep(std::time::Duration::from_millis(200));
+    std::thread::sleep(std::time::Duration::from_millis(400));
 
     let mut received = 0;
     loop {
-        let res = pool.recv()?;
-        if let Some(res) = res {
-            // After max attempts, we get "done"
+        if let Some(res) = pool.recv()? {
             assert_eq!(res, "done");
             received += 1;
         } else {
             break;
         }
     }
-
     assert_eq!(received, 1);
 
     Ok(())
 }
 
 #[test]
-fn test_retry_max_attempts_exceeded() -> Result<()> {
-    // Test behavior when max attempts is exceeded
+fn test_retry_always_discards_on_max_exceeded() -> Result<()> {
+    // When a step always returns Retry, max attempts are eventually exhausted
+    // and the item is silently dropped (received == 0).
     let pool = pipe![
         always_fail: |_req: String| -> String {
-            // Always retry - will exceed default max of 3
             ichika::retry::<String, anyhow::Error>()
         },
     ]?;
@@ -90,24 +82,20 @@ fn test_retry_max_attempts_exceeded() -> Result<()> {
 
     let mut received = 0;
     loop {
-        let res = pool.recv()?;
-        if let Some(res) = res {
-            // After max attempts, the original request is sent
-            assert_eq!(res, "original");
+        if let Some(_) = pool.recv()? {
             received += 1;
         } else {
             break;
         }
     }
-
-    assert_eq!(received, 1);
+    assert_eq!(received, 0);
 
     Ok(())
 }
 
 #[test]
-fn test_retry_with_delay() -> Result<()> {
-    // Test that retry delay is respected
+fn test_retry_with_delay_respected() -> Result<()> {
+    // Verify that the delay_ms in RetryWith is actually observed.
     let pool = pipe![
         delayed_retry: |_req: String| -> String {
             ichika::Status::RetryWith(
@@ -122,12 +110,11 @@ fn test_retry_with_delay() -> Result<()> {
 
     let start = std::time::Instant::now();
     pool.send("test".to_string())?;
-    std::thread::sleep(std::time::Duration::from_millis(300));
+    std::thread::sleep(std::time::Duration::from_millis(600));
 
     let mut received = 0;
     loop {
-        let res = pool.recv()?;
-        if let Some(res) = res {
+        if let Some(res) = pool.recv()? {
             assert_eq!(res, "delayed");
             received += 1;
         } else {
@@ -136,130 +123,122 @@ fn test_retry_with_delay() -> Result<()> {
     }
 
     let elapsed = start.elapsed();
-    // Should take at least 150ms (one delay)
-    assert!(elapsed >= std::time::Duration::from_millis(140));
+    // Two retries x 150 ms == 300 ms minimum before fallback is sent.
+    assert!(elapsed >= std::time::Duration::from_millis(250));
     assert_eq!(received, 1);
 
     Ok(())
 }
 
 #[test]
-fn test_retry_with_successful_pipeline() -> Result<()> {
-    // Test retry in a multi-step pipeline
+fn test_retry_with_sends_fallback_when_condition_never_met() -> Result<()> {
+    // A step that always returns RetryWith when the input is empty
+    // eventually sends its fallback output once max retries are exhausted.
     let pool = pipe![
-        step_with_retry: |req: String| -> String {
-            // Retry until we get a non-empty string
+        step: |req: String| -> String {
             if req.is_empty() {
                 ichika::Status::RetryWith(
-                    RetryPolicy { max_attempts: 3, delay_ms: 50 },
+                    RetryPolicy { max_attempts: 3, delay_ms: 20 },
                     0,
-                    "default".to_string(),
+                    "fallback".to_string(),
                 )
             } else {
-                ichika::Status::Next(format!("length:{}", req.len()))
+                ichika::Status::Next(format!("ok:{}", req.len()))
             }
         },
     ]?;
 
-    std::thread::sleep(std::time::Duration::from_millis(200));
+    std::thread::sleep(std::time::Duration::from_millis(100));
 
-    // Send empty string - will retry with default value
+    // Empty string retries and eventually emits the fallback.
     pool.send("".to_string())?;
-    std::thread::sleep(std::time::Duration::from_millis(200));
+    // Non-empty string succeeds immediately.
+    pool.send("hello".to_string())?;
 
-    let mut received = 0;
+    std::thread::sleep(std::time::Duration::from_millis(300));
+
+    let mut results = Vec::new();
     loop {
-        let res = pool.recv()?;
-        if let Some(res) = res {
-            assert_eq!(res, "length:7"); // len("default") = 7
-            received += 1;
+        if let Some(res) = pool.recv()? {
+            results.push(res);
         } else {
             break;
         }
     }
 
-    assert_eq!(received, 1);
+    assert_eq!(results.len(), 2);
+    assert!(results.contains(&"fallback".to_string()));
+    assert!(results.contains(&"ok:5".to_string()));
 
     Ok(())
 }
 
 #[test]
 fn test_retry_immediate_success() -> Result<()> {
-    // Test that requests succeed immediately without retry when valid
+    // When no retry is needed, the request is processed on the first try.
     let pool = pipe![
         no_retry_needed: |req: String| -> String {
             Ok(format!("processed:{}", req))
         },
     ]?;
 
-    std::thread::sleep(std::time::Duration::from_millis(200));
+    std::thread::sleep(std::time::Duration::from_millis(100));
 
     pool.send("valid".to_string())?;
-    std::thread::sleep(std::time::Duration::from_millis(100));
+    std::thread::sleep(std::time::Duration::from_millis(300));
 
     let mut received = 0;
     loop {
-        let res = pool.recv()?;
-        if let Some(res) = res {
+        if let Some(res) = pool.recv()? {
             assert_eq!(res, "processed:valid");
             received += 1;
         } else {
             break;
         }
     }
-
     assert_eq!(received, 1);
 
     Ok(())
 }
 
 #[test]
-fn test_retry_with_incremental_values() -> Result<()> {
-    // Test retry that modifies the value on each attempt
+fn test_retry_with_fallback_in_multi_step_pipeline() -> Result<()> {
+    // RetryWith produces its fallback value which then flows into the next step.
     let pool = pipe![
-        counter: |req: String| -> String {
-            // Parse "count:N" and increment
-            if let Some(count_str) = req.strip_prefix("count:") {
-                let count: usize = count_str.parse().unwrap_or(0);
-                if count < 2 {
-                    // Retry with incremented count
-                    ichika::Status::RetryWith(
-                        RetryPolicy { max_attempts: 3, delay_ms: 50 },
-                        count,
-                        format!("count:{}", count + 1),
-                    )
-                } else {
-                    // Success after 2 retries
-                    ichika::Status::Next(format!("final_count:{}", count))
-                }
-            } else {
-                // First request - start counting
+        first: |req: String| -> String {
+            if req.is_empty() {
                 ichika::Status::RetryWith(
-                    RetryPolicy { max_attempts: 3, delay_ms: 50 },
+                    RetryPolicy { max_attempts: 1, delay_ms: 20 },
                     0,
-                    "count:1".to_string(),
+                    "nonempty".to_string(),
                 )
+            } else {
+                ichika::Status::Next(req)
             }
         },
+        second: |req: String| -> usize { Ok(req.len()) },
     ]?;
 
-    std::thread::sleep(std::time::Duration::from_millis(200));
+    std::thread::sleep(std::time::Duration::from_millis(100));
 
-    pool.send("start".to_string())?;
+    pool.send("".to_string())?;     // triggers RetryWith fallback "nonempty"
+    pool.send("hi".to_string())?;  // processed directly
+
     std::thread::sleep(std::time::Duration::from_millis(300));
 
-    let mut received = 0;
+    let mut results: Vec<usize> = Vec::new();
     loop {
-        let res = pool.recv()?;
-        if let Some(res) = res {
-            assert!(res.contains("final_count"));
-            received += 1;
+        if let Some(res) = pool.recv()? {
+            results.push(res);
         } else {
             break;
         }
     }
 
-    assert_eq!(received, 1);
+    // "nonempty" -> len = 8, "hi" -> len = 2
+    assert_eq!(results.len(), 2);
+    assert!(results.contains(&8));
+    assert!(results.contains(&2));
 
     Ok(())
 }

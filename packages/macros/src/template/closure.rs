@@ -34,6 +34,7 @@ pub(crate) fn generate_closure(closure: ClosureMacrosFlatten) -> Result<TokenStr
     if closure.is_async {
         if cfg!(feature = "tokio") {
             Ok(quote! {
+              #[allow(non_camel_case_types)]
               struct #id;
 
               impl ::ichika::node::ThreadNode for #id {
@@ -54,6 +55,7 @@ pub(crate) fn generate_closure(closure: ClosureMacrosFlatten) -> Result<TokenStr
             })
         } else if cfg!(feature = "async-std") {
             Ok(quote! {
+              #[allow(non_camel_case_types)]
               struct #id;
 
               impl ::ichika::node::ThreadNode for #id {
@@ -76,6 +78,7 @@ pub(crate) fn generate_closure(closure: ClosureMacrosFlatten) -> Result<TokenStr
         }
     } else {
         Ok(quote! {
+          #[allow(non_camel_case_types)]
           struct #id;
 
           impl ::ichika::node::ThreadNode for #id {

@@ -4,7 +4,7 @@ use ichika::pipe;
 
 #[test]
 fn create_named_pipe() -> Result<()> {
-    let pool = pipe![
+    let _pool = pipe![
         test1: |req: String| -> usize { Ok(req.len()) },
         test2: async |req: usize| -> String { Ok(req.to_string()) }
     ]?;
@@ -14,7 +14,7 @@ fn create_named_pipe() -> Result<()> {
 
 #[test]
 fn create_match_pipe() -> Result<()> {
-    let pool = pipe![
+    let _pool = pipe![
         test1: |req: String| -> usize { Ok(req.len()) },
         match {
             1 => test3: |req: usize| -> String { Ok(format!("branch_a: {}", req)) },
