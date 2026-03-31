@@ -4,6 +4,8 @@
 
 Date: 2026-03-31
 
+**Note**: Pre-existing test failures identified in `pipe_async`, `pipe_switch`, `pipe_named`, and some examples. These appear to be related to type inference in macro expansion and need investigation before M3/M4 work.
+
 Based on source and `cargo test -q` verification:
 
 - Workspace root is a virtual manifest (`Cargo.toml` has `[workspace]` only), so runnable examples should be placed under crate package path (`packages/types/examples/`) rather than workspace root `examples/`.
