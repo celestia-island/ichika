@@ -8,20 +8,19 @@ use crate::tools::pipe_flatten::PipeNodeFlatten;
 pub(crate) fn generate_closures(steps: Vec<PipeNodeFlatten>) -> Result<TokenStream> {
     let closure_impl_list = steps
         .iter()
-        .enumerate()
-        .map(|(_id, node)| {
+        .map(|node| {
             Ok(match node {
                 PipeNodeFlatten::Closure(closure) => generate_closure(closure.clone())?,
                 PipeNodeFlatten::Map(nodes) => {
                     // Flatten all nested PipeNodeFlatten nodes from match arms
                     let nested_steps: Vec<PipeNodeFlatten> = nodes
                         .iter()
-                        .filter_map(|node| {
+                        .map(|node| {
                             // Only extract Closure nodes from match arms
                             // Map nodes within match arms will be handled by recursion
                             match &node.body {
-                                PipeNodeFlatten::Closure(c) => Some(PipeNodeFlatten::Closure(c.clone())),
-                                PipeNodeFlatten::Map(nested) => Some(PipeNodeFlatten::Map(nested.clone())),
+                                PipeNodeFlatten::Closure(c) => PipeNodeFlatten::Closure(c.clone()),
+                                PipeNodeFlatten::Map(nested) => PipeNodeFlatten::Map(nested.clone()),
                             }
                         })
                         .collect();

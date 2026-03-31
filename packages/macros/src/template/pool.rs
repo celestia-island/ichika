@@ -30,8 +30,9 @@ pub(crate) fn generate_pool(closures: Vec<PipeNodeFlatten>, global_constraints: 
             }
         })
         .collect::<Vec<TokenStream>>();
-    let flume_request_unbounded_first_ident = match closure_steps.first().ok_or(anyhow!("No closure"))? {
-        closure => Ident::new(&format!("tx_{}", closure.id), Span::call_site()),
+    let flume_request_unbounded_first_ident = {
+        let closure = closure_steps.first().ok_or(anyhow!("No closure"))?;
+        Ident::new(&format!("tx_{}", closure.id), Span::call_site())
     };
 
     let pods_name = closure_steps
@@ -78,25 +79,26 @@ pub(crate) fn generate_pool(closures: Vec<PipeNodeFlatten>, global_constraints: 
     let thread_creators = closure_steps
         .iter()
         .enumerate()
-        .filter_map(|(i, closure)| {
+        .map(|(i, closure)| {
             // Find the next closure step whose input type matches current closure's output type
             let current_output_type = &closure.ret_ty;
             let next_tx = closures
                 .iter()
                 .skip(i + 1)
-                .filter_map(|step| match step {
-                    PipeNodeFlatten::Closure(c) => {
-                        // Check if the next closure's input type matches current closure's output type
-                        let next_input_type = c.arg_ty.first()?;
-                        if type_matches(next_input_type, current_output_type) {
-                            Some(Ident::new(&format!("tx_{}", c.id), Span::call_site()))
-                        } else {
-                            None
+                .find_map(|step| {
+                    match step {
+                        PipeNodeFlatten::Closure(c) => {
+                            // Check if the next closure's input type matches current closure's output type
+                            let next_input_type = c.arg_ty.first()?;
+                            if type_matches(next_input_type, current_output_type) {
+                                Some(Ident::new(&format!("tx_{}", c.id), Span::call_site()))
+                            } else {
+                                None
+                            }
                         }
+                        PipeNodeFlatten::Map(_) => None,
                     }
-                    PipeNodeFlatten::Map(_) => None,
                 })
-                .next()
                 .unwrap_or_else(|| Ident::new("tx_pods_response", Span::call_site()));
 
             // Collect all closure names and their input types for routing table
@@ -110,7 +112,7 @@ pub(crate) fn generate_pool(closures: Vec<PipeNodeFlatten>, global_constraints: 
             // Get step constraints, falling back to global constraints
             let step_constraints = closure.constraints.as_ref().or(global_constraints.as_ref());
 
-            Some(generate_thread_creator(
+            generate_thread_creator(
                 Ident::new(&format!("rx_{}", closure.id), Span::call_site()),
                 next_tx,
                 closure.id.clone(),
@@ -118,33 +120,29 @@ pub(crate) fn generate_pool(closures: Vec<PipeNodeFlatten>, global_constraints: 
                 output_type,
                 routing_targets,
                 step_constraints,
-            ))
+            )
         })
-        .collect::<Vec<Result<TokenStream>>>()
-        .into_iter()
-        .collect::<Result<Vec<TokenStream>>>()?;
+        .collect::<Result<Vec<_>>>()?;
 
-    let pool_request_ty = match closure_steps.first().ok_or(anyhow!("No closure"))? {
-        closure => {
-            if closure.arg_ty.len() == 1 {
-                let arg_ty = closure
-                    .arg_ty
-                    .first()
-                    .cloned()
-                    .ok_or(anyhow!("First node is closure but arg_ty is empty"))?;
-                quote! { #arg_ty }
-            } else {
-                let arg_ty = closure.arg_ty.clone();
-                quote! { (#( #arg_ty ),*) }
-            }
+    let pool_request_ty = {
+        let closure = closure_steps.first().ok_or(anyhow!("No closure"))?;
+        if closure.arg_ty.len() == 1 {
+            let arg_ty = closure
+                .arg_ty
+                .first()
+                .cloned()
+                .ok_or(anyhow!("First node is closure but arg_ty is empty"))?;
+            quote! { #arg_ty }
+        } else {
+            let arg_ty = closure.arg_ty.clone();
+            quote! { (#( #arg_ty ),*) }
         }
     };
-    let pool_response_ty = match closure_steps.last().ok_or(anyhow!("No closure"))? {
-        closure => {
-            // Always use the full TypePath for consistency
-            let ret_ty = &closure.ret_ty;
-            quote! { #ret_ty }
-        }
+    let pool_response_ty = {
+        let closure = closure_steps.last().ok_or(anyhow!("No closure"))?;
+        // Always use the full TypePath for consistency
+        let ret_ty = &closure.ret_ty;
+        quote! { #ret_ty }
     };
 
     // Generate max_thread_count expression based on global constraints
