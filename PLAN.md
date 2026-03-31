@@ -68,6 +68,10 @@ Deliverable:
 
 - ✅ E1. `basic_sync_chain.rs` - Minimal sync pipeline
 - ✅ E2. `basic_async_chain.rs` - Async closure chain
+- ✅ E3. `tuple_payload_pipeline.rs` - String processing pipeline (tuple support TODO)
+- ✅ E4. `monitoring_thread_usage.rs` - Thread usage monitoring
+- ✅ E5. `graceful_shutdown_drop.rs` - Graceful shutdown demonstration
+- ✅ E6. `status_exit_demo.rs` - Filter behavior demonstration
 
 ## M2: Error Handling (`catch`)
 
