@@ -1,0 +1,17 @@
+[book]
+title = "Ichika 문서"
+description = "스레드 풀 기반 파이프라인을 구축하기 위한 Rust 절차형 매크로 라이브러리"
+authors = ["celestia-island"]
+language = "ko"
+src = "."
+
+[build]
+build-dir = "../../target/docs/ko"
+
+[output.html]
+default-theme = "light"
+preferred-dark-theme = "ayu"
+git-repository-url = "https://github.com/celestia-island/ichika"
+edit-url-template = "https://github.com/celestia-island/ichika/edit/next/docs/ko/{path}"
+additional-js = ["../theme/lang-switcher.js"]
+additional-css = ["../theme/lang-switcher.css"]

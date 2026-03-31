@@ -1,0 +1,17 @@
+[book]
+title = "Documentation Ichika"
+description = "Une bibliothèque de macros procédurales Rust pour construire des pipelines basés sur des pools de threads"
+authors = ["celestia-island"]
+language = "fr"
+src = "."
+
+[build]
+build-dir = "../../target/docs/fr"
+
+[output.html]
+default-theme = "light"
+preferred-dark-theme = "ayu"
+git-repository-url = "https://github.com/celestia-island/ichika"
+edit-url-template = "https://github.com/celestia-island/ichika/edit/next/docs/fr/{path}"
+additional-js = ["../theme/lang-switcher.js"]
+additional-css = ["../theme/lang-switcher.css"]
