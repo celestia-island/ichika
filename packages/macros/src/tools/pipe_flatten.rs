@@ -22,6 +22,7 @@ pub enum PipeNodeFlatten {
 
 #[derive(Debug, Clone)]
 pub struct MatchNodeFlatten {
+    #[allow(dead_code)]
     pub condition: Expr,
     pub body: PipeNodeFlatten,
 }

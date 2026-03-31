@@ -9,7 +9,7 @@ pub(crate) fn generate_closures(steps: Vec<PipeNodeFlatten>) -> Result<TokenStre
     let closure_impl_list = steps
         .iter()
         .enumerate()
-        .map(|(id, node)| {
+        .map(|(_id, node)| {
             Ok(match node {
                 PipeNodeFlatten::Closure(closure) => generate_closure(closure.clone())?,
                 PipeNodeFlatten::Map(nodes) => {

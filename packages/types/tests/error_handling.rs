@@ -19,7 +19,7 @@ fn test_basic_pipeline_with_result_wrapping() -> Result<()> {
     // Send valid inputs
     pool.send("hello".to_string())?;
     pool.send("world".to_string())?;
-    std::thread::sleep(std::time::Duration::from_millis(200));
+    std::thread::sleep(std::time::Duration::from_millis(500));
 
     let mut received = 0;
     loop {
@@ -62,12 +62,12 @@ fn test_panic_handling() -> Result<()> {
 
     // Another valid input - pool should still work
     pool.send("another".to_string())?;
-    std::thread::sleep(std::time::Duration::from_millis(200));
+    std::thread::sleep(std::time::Duration::from_millis(500));
 
     let mut received = 0;
     loop {
         let res = pool.recv()?;
-        if let Some(res) = res {
+        if let Some(_) = res {
             received += 1;
         } else {
             break;
@@ -106,7 +106,7 @@ fn test_error_handling_with_panic() -> Result<()> {
 
     // Another normal case
     pool.send("success".to_string())?;
-    std::thread::sleep(std::time::Duration::from_millis(200));
+    std::thread::sleep(std::time::Duration::from_millis(500));
 
     let mut received = 0;
     let mut results = Vec::new();

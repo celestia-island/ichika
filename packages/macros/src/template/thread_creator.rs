@@ -1,7 +1,7 @@
 use anyhow::Result;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
-use syn::{Ident, TypePath, Expr};
+use syn::{Ident, TypePath};
 
 use crate::tools::ThreadConstraints;
 
@@ -64,29 +64,25 @@ pub(crate) fn generate_thread_creator(
     // Generate thread limit check based on constraints
     let thread_limit_check = if let Some(constraints) = step_constraints {
         match (&constraints.max_threads, &constraints.min_threads) {
-            (Some(max), Some(min)) => {
+            (Some(max), Some(_min)) => {
                 quote! {
-                    let max_limit = #max;
-                    let min_limit = #min;
                     !#rx_request.is_empty()
-                        && prev_pods_size + #target_step_pods_ident.len() < max_thread_count.min(max_limit)
-                        && #target_step_pods_ident.len() < max_limit
+                        && prev_pods_size + #target_step_pods_ident.len() < max_thread_count.min(#max)
+                        && #target_step_pods_ident.len() < #max
                 }
             }
             (Some(max), None) => {
                 quote! {
-                    let max_limit = #max;
                     !#rx_request.is_empty()
-                        && prev_pods_size + #target_step_pods_ident.len() < max_thread_count.min(max_limit)
-                        && #target_step_pods_ident.len() < max_limit
+                        && prev_pods_size + #target_step_pods_ident.len() < max_thread_count.min(#max)
+                        && #target_step_pods_ident.len() < #max
                 }
             }
             (None, Some(min)) => {
                 quote! {
-                    let min_limit = #min;
                     !#rx_request.is_empty()
                         && prev_pods_size + #target_step_pods_ident.len() < max_thread_count
-                        && (#target_step_pods_ident.len() < min_limit || #rx_request.len() > #target_step_pods_ident.len() * 2)
+                        && (#target_step_pods_ident.len() < #min || #rx_request.len() > #target_step_pods_ident.len() * 2)
                 }
             }
             (None, None) => {
@@ -112,10 +108,10 @@ pub(crate) fn generate_thread_creator(
                 #routing_setup
 
                 move || {
-                    while let Ok(mut req) = rx_request.try_recv() {
+                    while let Ok(req) = rx_request.try_recv() {
                         let mut attempt: usize = 0;
                         loop {
-                            let res = #target_step_ident::run(req);
+                            let res = #target_step_ident::run(req.clone());
                             match res {
                                 ::ichika::Status::Next(res) => {
                                     tx_response.send(res).unwrap();
@@ -125,18 +121,25 @@ pub(crate) fn generate_thread_creator(
                                     break;
                                 }
                                 ::ichika::Status::Retry => {
-                                    // Legacy retry: continue to next request
-                                    break;
-                                }
-                                ::ichika::Status::RetryWith(policy, current_attempt, retry_req) => {
-                                    if current_attempt < policy.max_attempts {
-                                        std::thread::sleep(std::time::Duration::from_millis(policy.delay_ms));
-                                        req = retry_req;
-                                        attempt = current_attempt + 1;
+                                    // Retry the step with the same original request.
+                                    // On max attempts exceeded, the item is silently discarded.
+                                    if attempt < ::ichika::RetryPolicy::default().max_attempts {
+                                        std::thread::sleep(std::time::Duration::from_millis(::ichika::RetryPolicy::default().delay_ms));
+                                        attempt += 1;
                                         continue;
                                     } else {
-                                        // Max attempts reached, send as-is
-                                        tx_response.send(retry_req).unwrap();
+                                        break;
+                                    }
+                                }
+                                ::ichika::Status::RetryWith(policy, _, fallback) => {
+                                    // Retry the step with the same original request.
+                                    // On max attempts exceeded, emit the provided fallback (Output type).
+                                    if attempt < policy.max_attempts {
+                                        std::thread::sleep(std::time::Duration::from_millis(policy.delay_ms));
+                                        attempt += 1;
+                                        continue;
+                                    } else {
+                                        tx_response.send(fallback).unwrap();
                                         break;
                                     }
                                 }
