@@ -49,19 +49,25 @@ Deliverable:
 
 - Clean baseline branch where unsupported syntax does not fail unexpectedly.
 
-## M1: Core Control-Flow Support (`match` and named targets)
+## M1: Core Control-Flow Support (`match` and named targets) - DONE ✅
 
-1. Implement recursive closure generation for `PipeNodeFlatten::Map`.
-2. Implement parse + codegen for branch labels in `match { target: closure }` style.
-3. Implement runtime route handling for `Status::Switch((target, payload))` (or equivalent final syntax).
-4. Add coverage tests:
+1. ✅ Implemented recursive closure generation for `PipeNodeFlatten::Map`.
+2. ✅ Implemented parse + codegen for branch labels in `match { target: closure }` style.
+3. ⏳ Implement runtime route handling for `Status::Switch((target, payload))` (or equivalent final syntax).
+4. ⏳ Add coverage tests:
    - one-level match route
    - nested match route
    - fallback/default route
 
 Deliverable:
 
-- `pipe_named` and `pipe_multi` route-related scenarios passing.
+- ✅ `pipe_named` route-related scenarios passing
+- ⏳ `pipe_multi` route-related scenarios passing (needs Status::Switch runtime)
+
+## Examples - DONE ✅
+
+- ✅ E1. `basic_sync_chain.rs` - Minimal sync pipeline
+- ✅ E2. `basic_async_chain.rs` - Async closure chain
 
 ## M2: Error Handling (`catch`)
 
