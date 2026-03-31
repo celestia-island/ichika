@@ -48,8 +48,8 @@ for i in 0..10 {
 ## TODO
 
 - [x] `async`, including `tokio` and `async-std`.
-- [ ] Named task.
-- [ ] Limit steps' thread usage.
-- [ ] Multiple target `match` with any depth.
-- [ ] Error handle target `catch`.
-- [ ] Retryable target `retry` with timeout parameter.
+- [x] Named task.
+- [x] Limit steps' thread usage.
+- [x] Multiple target `match` with any depth.
+- [x] Error handle target `catch`.
+- [x] Retryable target `retry` with timeout parameter.
