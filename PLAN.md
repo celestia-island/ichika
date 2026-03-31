@@ -4,16 +4,21 @@
 
 Date: 2026-03-31 (updated after M0–M4 completion)
 
-All milestones M0 through M4 are complete. `cargo test` is green with zero warnings.
-
-**Verified working:**
+**Completed (M0-M4):**
 
 - Multi-type closure chains: `String → usize → String` ✓
-- Named step routing via `Status::Switch` ✓  
+- Named step routing via `Status::Switch` ✓
 - Panic recovery with thread restart ✓
 - Retry with `RetryPolicy` (max_attempts, delay_ms) ✓
 - Per-step and global thread count constraints ✓
 - All 6 examples compile and run
+
+**Known Issues:**
+
+- Match routing dispatcher generation implemented but has type inference error
+- Error: "expected `String`, found `usize`` when using match construct
+- Generated code looks correct when expanded, but compilation fails
+- Needs investigation into compiler type inference
 
 ## 2. Goals
 
@@ -105,10 +110,20 @@ All milestones M0 through M4 are complete. `cargo test` is green with zero warni
 
 ## 5. Remaining / Future Work
 
+**High Priority:**
+
+- Fix type inference error with match routing dispatcher
+- Add E2E tests for match routing functionality
 - CI matrix for `--no-default-features --features async-std`
+
+**Medium Priority:**
+
 - Performance/robustness benchmark task
-- Full match-based error routing (deferred; current design uses panic-based approach)
 - Tuple payload support (`(String, usize) → ...`) - partially stubbed in E3
+
+**Deferred:**
+
+- Full match-based error routing (current design uses panic-based approach via `Status::Panic`)
 
 ## 6. Risks and Mitigations
 
