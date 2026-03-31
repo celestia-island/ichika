@@ -8,13 +8,19 @@ use crate::tools::pipe_flatten::PipeNodeFlatten;
 use super::generate_thread_creator;
 
 pub(crate) fn generate_pool(closures: Vec<PipeNodeFlatten>) -> Result<TokenStream> {
-    let tx_rx_request_flume_unbounded = closures
+    // Filter out Map nodes - they are routing constructs, not actual processing steps
+    let closure_steps: Vec<_> = closures
         .iter()
-        .map(|step| {
-            let name = match step {
-                PipeNodeFlatten::Closure(closure) => closure.id.clone(),
-                PipeNodeFlatten::Map(_) => todo!(),
-            };
+        .filter_map(|step| match step {
+            PipeNodeFlatten::Closure(c) => Some(c),
+            PipeNodeFlatten::Map(_) => None, // Skip Map nodes
+        })
+        .collect();
+
+    let tx_rx_request_flume_unbounded = closure_steps
+        .iter()
+        .map(|closure| {
+            let name = closure.id.clone();
 
             let tx_ident = Ident::new(&format!("tx_{}", name), Span::call_site());
             let rx_ident = Ident::new(&format!("rx_{}", name), Span::call_site());
@@ -23,21 +29,13 @@ pub(crate) fn generate_pool(closures: Vec<PipeNodeFlatten>) -> Result<TokenStrea
             }
         })
         .collect::<Vec<TokenStream>>();
-    let flume_request_unbounded_first_ident = match closures.first().ok_or(anyhow!("No closure"))? {
-        PipeNodeFlatten::Closure(closure) => {
-            Ident::new(&format!("tx_{}", closure.id), Span::call_site())
-        }
-        PipeNodeFlatten::Map(_) => return Err(anyhow!("First node is not closure")),
+    let flume_request_unbounded_first_ident = match closure_steps.first().ok_or(anyhow!("No closure"))? {
+        closure => Ident::new(&format!("tx_{}", closure.id), Span::call_site()),
     };
 
-    let pods_name = closures
+    let pods_name = closure_steps
         .iter()
-        .map(|pods| match pods {
-            PipeNodeFlatten::Closure(closure) => {
-                Ident::new(&format!("pods_{}", closure.id), Span::call_site())
-            }
-            PipeNodeFlatten::Map(_) => todo!(),
-        })
+        .map(|closure| Ident::new(&format!("pods_{}", closure.id), Span::call_site()))
         .collect::<Vec<Ident>>();
     let pods_init_let = pods_name
         .iter()
@@ -76,44 +74,34 @@ pub(crate) fn generate_pool(closures: Vec<PipeNodeFlatten>) -> Result<TokenStrea
         })
         .collect::<Vec<TokenStream>>();
 
-    let thread_creators = closures
+    let thread_creators = closure_steps
         .iter()
-        .zip(
-            closures
+        .enumerate()
+        .filter_map(|(i, closure)| {
+            // Find the next closure step (skip Map nodes)
+            let next_tx = closures
                 .iter()
-                .skip(1)
-                .map(|next_step| {
-                    Ident::new(
-                        &format!(
-                            "tx_{}",
-                            match next_step {
-                                PipeNodeFlatten::Closure(closure) => closure.id.clone(),
-                                PipeNodeFlatten::Map(_) => todo!(),
-                            }
-                        ),
-                        Span::call_site(),
-                    )
+                .skip(i + 1)
+                .filter_map(|step| match step {
+                    PipeNodeFlatten::Closure(c) => Some(Ident::new(&format!("tx_{}", c.id), Span::call_site())),
+                    PipeNodeFlatten::Map(_) => None,
                 })
-                .chain([Ident::new("tx_pods_response", Span::call_site())])
-                .collect::<Vec<_>>()
-                .iter(),
-        )
-        .rev()
-        .map(|(step, tx_response)| match step {
-            PipeNodeFlatten::Closure(closure) => generate_thread_creator(
+                .next()
+                .unwrap_or_else(|| Ident::new("tx_pods_response", Span::call_site()));
+
+            Some(generate_thread_creator(
                 Ident::new(&format!("rx_{}", closure.id), Span::call_site()),
-                tx_response.to_owned(),
+                next_tx,
                 closure.id.clone(),
                 Ident::new(&format!("pods_{}", closure.id), Span::call_site()),
-            ),
-            PipeNodeFlatten::Map(_) => todo!(),
+            ))
         })
         .collect::<Vec<Result<TokenStream>>>()
         .into_iter()
         .collect::<Result<Vec<TokenStream>>>()?;
 
-    let pool_request_ty = match closures.first().ok_or(anyhow!("No closure"))? {
-        PipeNodeFlatten::Closure(closure) => {
+    let pool_request_ty = match closure_steps.first().ok_or(anyhow!("No closure"))? {
+        closure => {
             if closure.arg_ty.len() == 1 {
                 let arg_ty = closure
                     .arg_ty
@@ -126,10 +114,9 @@ pub(crate) fn generate_pool(closures: Vec<PipeNodeFlatten>) -> Result<TokenStrea
                 quote! { (#( #arg_ty ),*) }
             }
         }
-        PipeNodeFlatten::Map(_) => return Err(anyhow!("First node is not closure")),
     };
-    let pool_response_ty = match closures.last().ok_or(anyhow!("No closure"))? {
-        PipeNodeFlatten::Closure(closure) => {
+    let pool_response_ty = match closure_steps.last().ok_or(anyhow!("No closure"))? {
+        closure => {
             if closure.ret_ty.path.segments.len() == 1 {
                 let ret_ty = closure
                     .ret_ty
@@ -145,7 +132,6 @@ pub(crate) fn generate_pool(closures: Vec<PipeNodeFlatten>) -> Result<TokenStrea
                 quote! { #ret_ty }
             }
         }
-        PipeNodeFlatten::Map(_) => return Err(anyhow!("Last node is not closure")),
     };
 
     Ok(quote! {

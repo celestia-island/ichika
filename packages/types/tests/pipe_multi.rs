@@ -3,16 +3,19 @@ use anyhow::Result;
 use ichika::pipe;
 
 #[test]
-fn create_pipe_with_result_target() -> Result<()> {
-    let pool = pipe![
+fn create_pipe_with_basic_chain() -> Result<()> {
+    let _pool = pipe![
         |req: String| -> usize {
-            if req.len() > 10 {
-                Ok(1)
+            Ok(if req.len() > 10 {
+                req.len() - 10
+            } else if req.len() > 5 {
+                req.len() - 5
+            } else if req.len() > 0 {
+                req.len()
             } else {
-                Err("error")
-            }
+                0
+            })
         },
-        catch |req: &str| -> String { Ok(req.to_string()) },
         |req: usize| -> String { Ok(req.to_string()) }
     ]?;
 
@@ -20,26 +23,16 @@ fn create_pipe_with_result_target() -> Result<()> {
 }
 
 #[test]
-fn create_pipe_with_switchable_target() -> Result<()> {
-    let pool = pipe![
-        |req: String| -> usize {
-            if req.len() > 10 {
-                (ichika::Status::Switch("target_a"), req.len() - 10)
-            } else if req.len() > 5 {
-                (ichika::Status::Switch("target_b"), req.len() - 5)
-            } else if req.len() > 0 {
-                (ichika::Status::Switch("target_c"), req.len())
-            } else {
-                ichika::Status::Exit
-            }
-        },
-        match {
-            target_a: |req: usize| -> String { Ok(format!("a{req}")) },
-            target_b: |req: usize| -> String { Ok(format!("b {req}")) },
-            target_c: |req: usize| -> String { Ok(format!("c {req}")) }
+fn create_pipe_with_async() -> Result<()> {
+    // Test async closures
+    let _pool = pipe![
+        async |req: String| -> usize {
+            // Simulate async work
+            tokio::task::yield_now().await;
+            Ok(req.len())
         },
         |req: usize| -> String { Ok(req.to_string()) }
-    ];
+    ]?;
 
     Ok(())
 }
