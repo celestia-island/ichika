@@ -29,9 +29,37 @@ pub(crate) fn generate_thread_creator(
                     while let Ok(req) = rx_request.try_recv() {
                         let res = #target_step_ident::run(req);
                         match res {
-                            ::ichika::Status::Next(res) => tx_response.send(res).unwrap(),
-                            _ => {
-                                todo!();
+                            ::ichika::Status::Next(res) => {
+                                tx_response.send(res).unwrap();
+                            }
+                            ::ichika::Status::Exit => {
+                                // Exit without sending to next step
+                                break;
+                            }
+                            ::ichika::Status::Retry => {
+                                // Retry: continue processing (request stays in queue)
+                                // For now, just continue to next iteration
+                                continue;
+                            }
+                            ::ichika::Status::Panic(err) => {
+                                // Panic - log error and exit
+                                eprintln!("Step {} panicked: {:?}", #target_step_ident::id(), err);
+                                break;
+                            }
+                            ::ichika::Status::Switch((target, payload)) => {
+                                // Switch: route to different target
+                                // For now, just send payload to next step
+                                // Full implementation requires target resolution
+                                tx_response.send(payload).unwrap();
+                            }
+                            ::ichika::Status::PanicSwitch((target, err)) => {
+                                eprintln!("PanicSwitch to target '{}' with error: {:?}", target, err);
+                                break;
+                            }
+                            ::ichika::Status::Back((target, payload)) => {
+                                // Back: route back to previous target
+                                // For now, just send payload to next step
+                                tx_response.send(payload).unwrap();
                             }
                         };
                     }
