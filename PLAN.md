@@ -87,19 +87,18 @@ Deliverable:
 - ✅ deterministic panic handling with thread recovery
 - ✅ error_handling.rs tests covering basic Result wrapping and panic scenarios
 
-## M3: Retry Semantics (`retry` + timeout)
+## M3: Retry Semantics (`retry` + timeout) - PARTIAL ✅
 
-1. Define retry policy model:
-   - max attempts
-   - delay/backoff
-   - timeout/cancel (per single retry loop/attempt)
-2. Add status payload support if needed (`Retry` currently has no metadata).
-3. Implement scheduling behavior in daemon loop.
-4. Add tests for retry success/failure/timeout.
+1. ✅ Added `RetryPolicy` struct with max_attempts and delay_ms fields.
+2. ✅ Added `Status::RetryWith(policy, attempt, value)` variant for retry with metadata.
+3. ✅ Added helper functions `retry<T, E>()` and `retry_with<T>()` for explicit type annotations.
+4. ⚠️ Runtime scheduling behavior deferred - requires careful inner loop implementation.
+5. ⚠️ Tests deferred pending runtime implementation.
 
-Deliverable:
+Deliverable (partial):
 
-- retry behavior predictable and observable.
+- ✅ API surface for retry policy and metadata
+- ⚠️ Full runtime behavior with delay/attempt tracking TBD in future update
 
 ## M4: Per-Step Thread Limit
 
