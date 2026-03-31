@@ -79,18 +79,42 @@ fn test_async_routing() -> Result<()> {
 }
 
 #[test]
-fn test_match_syntax_compilation() -> Result<()> {
-    // Test that match syntax at least compiles (actual routing implementation is TODO)
-    // Temporarily comment out to debug type inference issue
-    /*
+fn test_match_routing_e2e() -> Result<()> {
+    // E2E test for match routing - verify that dispatcher correctly routes to branches
     let pool = pipe![
         step1: |req: String| -> usize { Ok(req.len()) },
         match {
             1 => branch1: |req: usize| -> String { Ok(format!("one: {}", req)) },
             _ => branch2: |req: usize| -> String { Ok(format!("other: {}", req)) },
         }
-    ];
-    let _pool = pool?;
-    */
+    ]?;
+
+    // Give daemon time to start up
+    std::thread::sleep(std::time::Duration::from_millis(200));
+
+    // Test case 1: Send "hello" (length 5) -> should route to branch2 (wildcard)
+    pool.send("hello".to_string())?;
+    std::thread::sleep(std::time::Duration::from_millis(200));
+
+    loop {
+        let res = pool.recv()?;
+        if let Some(res) = res {
+            assert_eq!(res, "other: 5");
+            break;
+        }
+    }
+
+    // Test case 2: Send "h" (length 1) -> should route to branch1
+    pool.send("h".to_string())?;
+    std::thread::sleep(std::time::Duration::from_millis(200));
+
+    loop {
+        let res = pool.recv()?;
+        if let Some(res) = res {
+            assert_eq!(res, "one: 1");
+            break;
+        }
+    }
+
     Ok(())
 }

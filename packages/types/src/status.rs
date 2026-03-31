@@ -45,12 +45,6 @@ pub trait IntoStatus<T, E> {
     fn into_status(self) -> Status<T, E>;
 }
 
-impl<T> IntoStatus<T, ()> for T {
-    fn into_status(self) -> Status<T, ()> {
-        Status::Next(self)
-    }
-}
-
 impl<T, E> IntoStatus<T, E> for Result<T, E> {
     fn into_status(self) -> Status<T, E> {
         match self {
@@ -60,6 +54,7 @@ impl<T, E> IntoStatus<T, E> for Result<T, E> {
     }
 }
 
+// Identity implementation for Status<T, E> -> Status<T, E>
 impl<T, E> IntoStatus<T, E> for Status<T, E> {
     fn into_status(self) -> Status<T, E> {
         self

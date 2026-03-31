@@ -1,7 +1,6 @@
 use anyhow::Result;
 use proc_macro2::TokenStream;
 use quote::quote;
-use syn::Ident;
 
 use super::generate_closure;
 use crate::tools::pipe_flatten::{DispatcherMacrosFlatten, PipeNodeFlatten};
@@ -25,6 +24,8 @@ pub(crate) fn generate_dispatcher(dispatcher: DispatcherMacrosFlatten) -> Result
         }
     });
 
+    // Dispatcher routes without transforming, so input_ty == output_ty
+    // The returned Status<Request, Error> matches the trait's Status<Response, Error>
     Ok(quote! {
         #[allow(non_camel_case_types)]
         struct #id;
@@ -54,27 +55,6 @@ pub(crate) fn generate_closures(steps: Vec<PipeNodeFlatten>) -> Result<TokenStre
         .map(|node| {
             Ok(match node {
                 PipeNodeFlatten::Closure(closure) => generate_closure(closure.clone())?,
-                PipeNodeFlatten::Map(nodes) => {
-                    // Flatten all nested PipeNodeFlatten nodes from match arms
-                    let nested_steps: Vec<PipeNodeFlatten> = nodes
-                        .iter()
-                        .map(|node| {
-                            // Only extract Closure nodes from match arms
-                            // Map nodes within match arms will be handled by recursion
-                            match &node.body {
-                                PipeNodeFlatten::Closure(c) => PipeNodeFlatten::Closure(c.clone()),
-                                PipeNodeFlatten::Map(nested) => PipeNodeFlatten::Map(nested.clone()),
-                                PipeNodeFlatten::Dispatcher(_) => {
-                                    // Dispatcher should not appear in old-style Map nodes
-                                    unreachable!("Dispatcher in old-style Map node")
-                                }
-                            }
-                        })
-                        .collect();
-
-                    // Recursively generate closures for all nested nodes
-                    generate_closures(nested_steps)?
-                }
                 PipeNodeFlatten::Dispatcher(dispatcher) => generate_dispatcher(dispatcher.clone())?,
             })
         })

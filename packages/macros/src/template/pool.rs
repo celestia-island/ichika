@@ -7,22 +7,7 @@ use crate::tools::{pipe_flatten::{PipeNodeFlatten, DispatcherMacrosFlatten}, Thr
 
 use super::{generate_routing_table, generate_thread_creator, type_matches};
 
-/// Trait for types that can be processing steps (both Closure and Dispatcher)
-trait ProcessableStep {
-    fn id(&self) -> &Ident;
-    fn input_ty(&self) -> &TypePath;
-    fn output_ty(&self) -> &TypePath;
-    fn constraints(&self) -> Option<&ThreadConstraints>;
-}
-
-impl ProcessableStep for DispatcherMacrosFlatten {
-    fn id(&self) -> &Ident { &self.id }
-    fn input_ty(&self) -> &TypePath { &self.input_ty }
-    fn output_ty(&self) -> &TypePath { &self.output_ty }
-    fn constraints(&self) -> Option<&ThreadConstraints> { None }
-}
-
-// We'll use a wrapper enum to handle both types uniformly
+// We'll use a wrapper enum to handle both Closure and Dispatcher uniformly
 enum StepRef<'a> {
     Closure(&'a crate::tools::pipe_flatten::ClosureMacrosFlatten),
     Dispatcher(&'a DispatcherMacrosFlatten),
@@ -56,13 +41,12 @@ impl<'a> StepRef<'a> {
 }
 
 pub(crate) fn generate_pool(closures: Vec<PipeNodeFlatten>, global_constraints: Option<ThreadConstraints>) -> Result<TokenStream> {
-    // Filter out only Map nodes - both Closure and Dispatcher are processable steps
+    // Both Closure and Dispatcher are processable steps
     let step_refs: Vec<StepRef> = closures
         .iter()
-        .filter_map(|step| match step {
-            PipeNodeFlatten::Closure(c) => Some(StepRef::Closure(c)),
-            PipeNodeFlatten::Map(_) => None, // Skip Map nodes (old style)
-            PipeNodeFlatten::Dispatcher(d) => Some(StepRef::Dispatcher(d)),
+        .map(|step| match step {
+            PipeNodeFlatten::Closure(c) => StepRef::Closure(c),
+            PipeNodeFlatten::Dispatcher(d) => StepRef::Dispatcher(d),
         })
         .collect();
 

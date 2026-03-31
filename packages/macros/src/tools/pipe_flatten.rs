@@ -17,15 +17,7 @@ pub struct ClosureMacrosFlatten {
 #[derive(Debug, Clone)]
 pub enum PipeNodeFlatten {
     Closure(ClosureMacrosFlatten),
-    Map(Vec<MatchNodeFlatten>),
     Dispatcher(DispatcherMacrosFlatten),
-}
-
-#[derive(Debug, Clone)]
-pub struct MatchNodeFlatten {
-    #[allow(dead_code)]
-    pub condition: Expr,
-    pub body: PipeNodeFlatten,
 }
 
 #[derive(Debug, Clone)]
