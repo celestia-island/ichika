@@ -10,7 +10,7 @@ impl ::ichika::node::ThreadNode for _step_0 {
 }
 impl ::ichika::node::ThreadNodeEnum for _step_0 {
     fn id() -> &'static str {
-        "_step_0"
+        stringify!(_step_0)
     }
 }
 
@@ -24,7 +24,7 @@ impl ::ichika::node::ThreadNode for _step_1 {
 }
 impl ::ichika::node::ThreadNodeEnum for _step_1 {
     fn id() -> &'static str {
-        "_step_1"
+        stringify!(_step_1)
     }
 }
 
@@ -66,7 +66,7 @@ impl _Pool {
         let (_tx_pods_response, rx_pods_response) = ::ichika::flume::unbounded::<String>();
 
         Ok(Self {
-            tx_send_request: tx__step_0.clone(),
+            tx_send_request: tx__step_0,
             rx_recv_response: rx_pods_response,
         })
     }

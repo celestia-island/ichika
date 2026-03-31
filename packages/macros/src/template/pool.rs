@@ -141,20 +141,9 @@ pub(crate) fn generate_pool(closures: Vec<PipeNodeFlatten>, global_constraints: 
     };
     let pool_response_ty = match closure_steps.last().ok_or(anyhow!("No closure"))? {
         closure => {
-            if closure.ret_ty.path.segments.len() == 1 {
-                let ret_ty = closure
-                    .ret_ty
-                    .clone()
-                    .path
-                    .segments
-                    .first()
-                    .cloned()
-                    .ok_or(anyhow!("Last node is closure but ret_ty is empty"))?;
-                quote! { #ret_ty }
-            } else {
-                let ret_ty = closure.ret_ty.clone();
-                quote! { #ret_ty }
-            }
+            // Always use the full TypePath for consistency
+            let ret_ty = &closure.ret_ty;
+            quote! { #ret_ty }
         }
     };
 
@@ -217,7 +206,7 @@ pub(crate) fn generate_pool(closures: Vec<PipeNodeFlatten>, global_constraints: 
         }
 
         impl _Pool {
-            pub fn new() -> ::ichika::anyhow::Result<Self> {
+            pub fn new() -> ::ichika::anyhow::Result<_Pool> {
                 use ::ichika::{node::*, pod::ThreadPod};
 
                 let (tx_shutdown, rx_shutdown) = ::ichika::flume::bounded(1);
