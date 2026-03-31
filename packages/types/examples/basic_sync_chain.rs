@@ -48,6 +48,9 @@ fn main() -> Result<()> {
 
     log::info!("All requests sent, collecting outputs...");
 
+    // Wait for background processing to complete
+    std::thread::sleep(std::time::Duration::from_millis(500));
+
     // Expected outputs for validation
     let expected_outputs: Vec<String> = inputs.iter().map(|s| s.len().to_string()).collect();
 
