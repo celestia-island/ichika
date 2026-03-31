@@ -53,8 +53,8 @@ Deliverable:
 
 1. ✅ Implemented recursive closure generation for `PipeNodeFlatten::Map`.
 2. ✅ Implemented parse + codegen for branch labels in `match { target: closure }` style.
-3. ⏳ Implement runtime route handling for `Status::Switch((target, payload))` (or equivalent final syntax).
-4. ⏳ Add coverage tests:
+3. ✅ Implemented runtime route handling for `Status::Switch((target, payload))` with type-safe routing table.
+4. ✅ Add coverage tests:
    - one-level match route
    - nested match route
    - fallback/default route
@@ -62,7 +62,7 @@ Deliverable:
 Deliverable:
 
 - ✅ `pipe_named` route-related scenarios passing
-- ⏳ `pipe_multi` route-related scenarios passing (needs Status::Switch runtime)
+- ✅ `pipe_switch` tests covering named steps, async, and match syntax
 
 ## Examples - DONE ✅
 

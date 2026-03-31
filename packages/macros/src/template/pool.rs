@@ -5,7 +5,7 @@ use syn::Ident;
 
 use crate::tools::pipe_flatten::PipeNodeFlatten;
 
-use super::generate_thread_creator;
+use super::{generate_routing_table, generate_thread_creator};
 
 pub(crate) fn generate_pool(closures: Vec<PipeNodeFlatten>) -> Result<TokenStream> {
     // Filter out Map nodes - they are routing constructs, not actual processing steps
@@ -89,11 +89,21 @@ pub(crate) fn generate_pool(closures: Vec<PipeNodeFlatten>) -> Result<TokenStrea
                 .next()
                 .unwrap_or_else(|| Ident::new("tx_pods_response", Span::call_site()));
 
+            // Collect all closure names and their input types for routing table
+            let closure_names: Vec<Ident> = closure_steps.iter().map(|c| c.id.clone()).collect();
+            let closure_input_types: Vec<_> = closure_steps.iter().map(|c| c.arg_ty.first().cloned().unwrap()).collect();
+
+            // Create routing table for this thread (only type-compatible targets)
+            let output_type = closure.ret_ty.clone();
+            let routing_targets = Some(generate_routing_table(&output_type, &closure_names, &closure_input_types));
+
             Some(generate_thread_creator(
                 Ident::new(&format!("rx_{}", closure.id), Span::call_site()),
                 next_tx,
                 closure.id.clone(),
                 Ident::new(&format!("pods_{}", closure.id), Span::call_site()),
+                output_type,
+                routing_targets,
             ))
         })
         .collect::<Vec<Result<TokenStream>>>()
