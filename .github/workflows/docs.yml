@@ -1,0 +1,65 @@
+name: Deploy Documentation
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'docs/**'
+      - '.github/workflows/docs.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup mdBook
+        uses: peaceiris/actions-mdbook@v2
+        with:
+          mdbook-version: '0.5.2'
+
+      - name: Build all language docs
+        run: |
+          for lang in en zh-hans zh-hant fr es ru ar ja ko; do
+            echo "Building $lang..."
+            mdbook build docs/$lang
+          done
+
+      - name: Assemble site
+        run: |
+          mkdir -p _site/theme
+          # English at root
+          cp -r target/docs/en/* _site/
+          # Other languages in subdirectories
+          for lang in zh-hans zh-hant fr es ru ar ja ko; do
+            cp -r target/docs/$lang _site/$lang
+          done
+          cp docs/theme/lang-switcher.js _site/theme/
+          cp docs/theme/lang-switcher.css _site/theme/
+          echo "ichika.celestia.world" > _site/CNAME
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
