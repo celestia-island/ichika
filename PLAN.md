@@ -7,6 +7,7 @@ Date: 2026-03-31 (updated after M0–M4 completion)
 All milestones M0 through M4 are complete. `cargo test` is green with zero warnings.
 
 **Verified working:**
+
 - Multi-type closure chains: `String → usize → String` ✓
 - Named step routing via `Status::Switch` ✓  
 - Panic recovery with thread restart ✓
@@ -72,6 +73,7 @@ All milestones M0 through M4 are complete. `cargo test` is green with zero warni
 5. ✅ 7 comprehensive tests covering all retry paths.
 
 **Retry semantics (locked):**
+
 - `Status::Retry` → retry up to `default().max_attempts`; silently discard after max
 - `Status::RetryWith(policy, _, fallback)` → retry up to `policy.max_attempts`; send `fallback` after max
 
@@ -124,4 +126,3 @@ All milestones M0 through M4 are complete. `cargo test` is green with zero warni
 1. Keep branch buildable and tests runnable at each major commit point.
 2. Avoid syntax divergence between README examples, parser grammar, and integration tests.
 3. Promote new language features only after adding at least one runnable example and one integration test.
-
