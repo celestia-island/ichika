@@ -4,7 +4,6 @@
 /// Flow: async step compute/transform, final output collect
 ///
 /// Validation: successful send/recv loop; no panic on runtime path
-
 use anyhow::Result;
 use ichika::prelude::*;
 
@@ -55,10 +54,7 @@ async fn main() -> Result<()> {
     log::info!("All requests sent, collecting outputs...");
 
     // Expected outputs for validation
-    let expected_outputs: Vec<String> = inputs
-        .iter()
-        .map(|s| s.len().to_string())
-        .collect();
+    let expected_outputs: Vec<String> = inputs.iter().map(|s| s.len().to_string()).collect();
 
     let mut collected_outputs = Vec::new();
 
@@ -89,7 +85,12 @@ async fn main() -> Result<()> {
 
     for (i, (input, expected)) in inputs.iter().zip(expected_outputs.iter()).enumerate() {
         let actual = &collected_outputs[i];
-        log::info!("Validation: '{}' -> {} (expected: {})", input, actual, expected);
+        log::info!(
+            "Validation: '{}' -> {} (expected: {})",
+            input,
+            actual,
+            expected
+        );
         assert_eq!(
             actual, expected,
             "Output mismatch for input '{}': expected {}, got {}",

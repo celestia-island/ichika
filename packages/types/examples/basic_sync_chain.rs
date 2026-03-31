@@ -4,7 +4,6 @@
 /// Flow: String -> usize -> String
 ///
 /// Validation: send N requests, collect outputs, assert deterministic mapping
-
 use anyhow::Result;
 use ichika::prelude::*;
 
@@ -50,10 +49,7 @@ fn main() -> Result<()> {
     log::info!("All requests sent, collecting outputs...");
 
     // Expected outputs for validation
-    let expected_outputs: Vec<String> = inputs
-        .iter()
-        .map(|s| s.len().to_string())
-        .collect();
+    let expected_outputs: Vec<String> = inputs.iter().map(|s| s.len().to_string()).collect();
 
     let mut collected_outputs = Vec::new();
 
@@ -84,7 +80,12 @@ fn main() -> Result<()> {
 
     for (i, (input, expected)) in inputs.iter().zip(expected_outputs.iter()).enumerate() {
         let actual = &collected_outputs[i];
-        log::info!("Validation: '{}' -> {} (expected: {})", input, actual, expected);
+        log::info!(
+            "Validation: '{}' -> {} (expected: {})",
+            input,
+            actual,
+            expected
+        );
         assert_eq!(
             actual, expected,
             "Output mismatch for input '{}': expected {}, got {}",
