@@ -53,6 +53,9 @@ async fn main() -> Result<()> {
 
     log::info!("All requests sent, collecting outputs...");
 
+    // Wait for background processing to complete
+    tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
+
     // Expected outputs for validation
     let expected_outputs: Vec<String> = inputs.iter().map(|s| s.len().to_string()).collect();
 
