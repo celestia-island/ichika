@@ -5,8 +5,7 @@ use syn::Ident;
 use crate::tools::{
     pipe::{MatchNode, PipeNode},
     pipe_flatten::{
-        BranchInfo, ClosureMacrosFlatten, DispatcherMacrosFlatten, MatchNodeFlatten,
-        PipeNodeFlatten,
+        BranchInfo, ClosureMacrosFlatten, DispatcherMacrosFlatten, PipeNodeFlatten,
     },
     ClosureMacros, PipeMacros,
 };
@@ -48,15 +47,14 @@ fn rewrite_name(prefix: impl ToString, step: PipeNode) -> Result<Vec<PipeNodeFla
                 Span::call_site(),
             );
 
-            // Get input/output types from first branch
+            // Get input type from first branch - dispatcher's Response type is same as Request type
+            // since it routes without transforming the value
             let first_branch = nodes.first().ok_or(anyhow!("Empty match"))?;
-            let (input_ty, output_ty) = match &first_branch.body {
-                PipeNode::Closure(c) => (
-                    c.arg_ty.first().cloned().ok_or(anyhow!("Missing input type"))?,
-                    c.ret_ty.clone(),
-                ),
+            let input_ty = match &first_branch.body {
+                PipeNode::Closure(c) => c.arg_ty.first().cloned().ok_or(anyhow!("Missing input type"))?,
                 _ => return Err(anyhow!("Match arm must be a closure")),
             };
+            let output_ty = input_ty.clone(); // Dispatcher routes without transforming, so output type = input type
 
             // Process each branch
             let mut all_nodes = Vec::new();
