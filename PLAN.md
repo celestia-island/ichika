@@ -4,17 +4,39 @@
 
 Date: 2026-03-31
 
-**Note**: Pre-existing test failures identified in `pipe_async`, `pipe_switch`, `pipe_named`, and some examples. These appear to be related to type inference in macro expansion and need investigation before M3/M4 work.
+**CRITICAL TYPE INFERENCE ISSUE**: The `pipe!` macro fails to compile when there are multiple closures with different input/output types. This is a blocking issue that prevents the pipeline from working with type transformations.
+
+**Failing Example:**
+```rust
+pipe![
+    |req: String| -> usize { Ok(req.len()) },
+    |req: usize| -> String { Ok(req.to_string()) }
+]
+```
+
+**Error:**
+```
+error[E0308]: mismatched types: expected `String`, found `usize`
+error[E0308]: mismatched types: expected `usize`, found `String`
+```
+
+**Working Examples:**
+- Single closure: `pipe![|req: String| -> String { ... }]` ✓
+- Multiple closures with same types: `pipe![|req: String| -> String { ... }, |req: String| -> String { ... }]` ✓
+
+**Investigation Status:**
+- The expanded code appears completely correct
+- Channel types are correct (using input types)
+- `ThreadPool` impl is correct
+- Manual simulation of expanded code compiles successfully
+- The issue appears to be a compiler bug or subtle macro hygiene problem
 
 Based on source and `cargo test -q` verification:
 
 - Workspace root is a virtual manifest (`Cargo.toml` has `[workspace]` only), so runnable examples should be placed under crate package path (`packages/types/examples/`) rather than workspace root `examples/`.
-- `pipe!` currently supports basic closure chain (sync + async closure parsing and codegen).
-- Named step syntax is parsed and rewritten, but `match` branch code generation is not implemented yet.
-- Runtime status variants exist in `Status` (`Switch`, `Retry`, `Exit`, etc.), but daemon/worker logic currently only handles `Status::Next`.
-- Existing tests indicate gaps:
-  - `pipe_multi.rs`: parser does not support `catch` keyword or `target_a:` branch label syntax.
-  - `pipe_named.rs`: macro panics at unimplemented recursive closure generation for `Map` node.
+- `pipe!` currently supports basic closure chain (sync + async closure parsing and codegen) with SAME input/output types.
+- Named step syntax is parsed and rewritten, and `match` branch code generation is implemented.
+- Runtime status variants exist in `Status` (`Switch`, `Retry`, `Exit`, etc.), and daemon/worker logic handles all status variants.
 
 ## 2. Goals
 
