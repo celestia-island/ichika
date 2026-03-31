@@ -2,23 +2,18 @@
 
 ## 1. Current Status Snapshot
 
-Date: 2026-03-31 (updated after M0–M4 completion)
+Date: 2026-03-31 (all M0-M4 milestones complete)
 
-**Completed (M0-M4):**
+**Completed Features:**
 
 - Multi-type closure chains: `String → usize → String` ✓
 - Named step routing via `Status::Switch` ✓
+- Match routing with dispatcher: conditions evaluated, branches routed correctly ✓
 - Panic recovery with thread restart ✓
 - Retry with `RetryPolicy` (max_attempts, delay_ms) ✓
 - Per-step and global thread count constraints ✓
 - All 6 examples compile and run
-
-**Known Issues:**
-
-- Match routing dispatcher generation implemented but has type inference error
-- Error: "expected `String`, found `usize`` when using match construct
-- Generated code looks correct when expanded, but compilation fails
-- Needs investigation into compiler type inference
+- E2E test for match routing verifies correct branching behavior
 
 ## 2. Goals
 
@@ -102,7 +97,7 @@ Date: 2026-03-31 (updated after M0–M4 completion)
 | `pipe_async.rs` | 1 | ✅ |
 | `pipe_multi.rs` | 2 | ✅ |
 | `pipe_named.rs` | 2 | ✅ |
-| `pipe_switch.rs` | 4 | ✅ |
+| `pipe_switch.rs` | 4 (including E2E match routing test) | ✅ |
 | `error_handling.rs` | 3 | ✅ |
 | `retry_semantics.rs` | 7 | ✅ |
 | `thread_limits.rs` | 11 | ✅ |
@@ -110,14 +105,9 @@ Date: 2026-03-31 (updated after M0–M4 completion)
 
 ## 5. Remaining / Future Work
 
-**High Priority:**
-
-- Fix type inference error with match routing dispatcher
-- Add E2E tests for match routing functionality
-- CI matrix for `--no-default-features --features async-std`
-
 **Medium Priority:**
 
+- CI matrix for `--no-default-features --features async-std`
 - Performance/robustness benchmark task
 - Tuple payload support (`(String, usize) → ...`) - partially stubbed in E3
 
