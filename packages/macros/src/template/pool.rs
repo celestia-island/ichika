@@ -21,11 +21,12 @@ pub(crate) fn generate_pool(closures: Vec<PipeNodeFlatten>) -> Result<TokenStrea
         .iter()
         .map(|closure| {
             let name = closure.id.clone();
+            let input_ty = closure.arg_ty.first().cloned().unwrap();
 
             let tx_ident = Ident::new(&format!("tx_{}", name), Span::call_site());
             let rx_ident = Ident::new(&format!("rx_{}", name), Span::call_site());
             quote! {
-               let (#tx_ident, #rx_ident) = ::ichika::flume::unbounded();
+               let (#tx_ident, #rx_ident) = ::ichika::flume::unbounded::<#input_ty>();
             }
         })
         .collect::<Vec<TokenStream>>();
@@ -202,7 +203,7 @@ pub(crate) fn generate_pool(closures: Vec<PipeNodeFlatten>) -> Result<TokenStrea
                 let (tx_task_count_response, rx_task_count_response) = ::ichika::flume::bounded(1);
 
                 #( #tx_rx_request_flume_unbounded )*
-                let (tx_pods_response, rx_pods_response) = ::ichika::flume::unbounded();
+                let (tx_pods_response, rx_pods_response) = ::ichika::flume::unbounded::<#pool_response_ty>();
 
                 let daemon = std::thread::spawn({
                     let #flume_request_unbounded_first_ident = #flume_request_unbounded_first_ident.clone();
