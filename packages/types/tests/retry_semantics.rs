@@ -221,8 +221,8 @@ fn test_retry_with_fallback_in_multi_step_pipeline() -> Result<()> {
 
     std::thread::sleep(std::time::Duration::from_millis(100));
 
-    pool.send("".to_string())?;     // triggers RetryWith fallback "nonempty"
-    pool.send("hi".to_string())?;  // processed directly
+    pool.send("".to_string())?; // triggers RetryWith fallback "nonempty"
+    pool.send("hi".to_string())?; // processed directly
 
     std::thread::sleep(std::time::Duration::from_millis(300));
 
