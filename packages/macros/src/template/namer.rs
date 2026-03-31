@@ -4,9 +4,7 @@ use syn::Ident;
 
 use crate::tools::{
     pipe::{MatchNode, PipeNode},
-    pipe_flatten::{
-        BranchInfo, ClosureMacrosFlatten, DispatcherMacrosFlatten, PipeNodeFlatten,
-    },
+    pipe_flatten::{BranchInfo, ClosureMacrosFlatten, DispatcherMacrosFlatten, PipeNodeFlatten},
     ClosureMacros, PipeMacros,
 };
 
@@ -51,7 +49,11 @@ fn rewrite_name(prefix: impl ToString, step: PipeNode) -> Result<Vec<PipeNodeFla
             // since it routes without transforming the value
             let first_branch = nodes.first().ok_or(anyhow!("Empty match"))?;
             let input_ty = match &first_branch.body {
-                PipeNode::Closure(c) => c.arg_ty.first().cloned().ok_or(anyhow!("Missing input type"))?,
+                PipeNode::Closure(c) => c
+                    .arg_ty
+                    .first()
+                    .cloned()
+                    .ok_or(anyhow!("Missing input type"))?,
                 _ => return Err(anyhow!("Match arm must be a closure")),
             };
             let output_ty = input_ty.clone(); // Dispatcher routes without transforming, so output type = input type
@@ -74,7 +76,10 @@ fn rewrite_name(prefix: impl ToString, step: PipeNode) -> Result<Vec<PipeNodeFla
                 all_nodes.append(&mut branch_nodes);
 
                 // Add branch info to dispatcher
-                branches.push(BranchInfo { condition, target_id });
+                branches.push(BranchInfo {
+                    condition,
+                    target_id,
+                });
             }
 
             // Create the dispatcher node
