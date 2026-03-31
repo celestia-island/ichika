@@ -3,11 +3,11 @@ use proc_macro2::{Span, TokenStream};
 use quote::quote;
 use syn::Ident;
 
-use crate::tools::pipe_flatten::PipeNodeFlatten;
+use crate::tools::{pipe_flatten::PipeNodeFlatten, ThreadConstraints};
 
-use super::{generate_routing_table, generate_thread_creator};
+use super::{generate_routing_table, generate_thread_creator, type_matches};
 
-pub(crate) fn generate_pool(closures: Vec<PipeNodeFlatten>) -> Result<TokenStream> {
+pub(crate) fn generate_pool(closures: Vec<PipeNodeFlatten>, global_constraints: Option<ThreadConstraints>) -> Result<TokenStream> {
     // Filter out Map nodes - they are routing constructs, not actual processing steps
     let closure_steps: Vec<_> = closures
         .iter()
@@ -79,12 +79,21 @@ pub(crate) fn generate_pool(closures: Vec<PipeNodeFlatten>) -> Result<TokenStrea
         .iter()
         .enumerate()
         .filter_map(|(i, closure)| {
-            // Find the next closure step (skip Map nodes)
+            // Find the next closure step whose input type matches current closure's output type
+            let current_output_type = &closure.ret_ty;
             let next_tx = closures
                 .iter()
                 .skip(i + 1)
                 .filter_map(|step| match step {
-                    PipeNodeFlatten::Closure(c) => Some(Ident::new(&format!("tx_{}", c.id), Span::call_site())),
+                    PipeNodeFlatten::Closure(c) => {
+                        // Check if the next closure's input type matches current closure's output type
+                        let next_input_type = c.arg_ty.first()?;
+                        if type_matches(next_input_type, current_output_type) {
+                            Some(Ident::new(&format!("tx_{}", c.id), Span::call_site()))
+                        } else {
+                            None
+                        }
+                    }
                     PipeNodeFlatten::Map(_) => None,
                 })
                 .next()
@@ -98,6 +107,9 @@ pub(crate) fn generate_pool(closures: Vec<PipeNodeFlatten>) -> Result<TokenStrea
             let output_type = closure.ret_ty.clone();
             let routing_targets = Some(generate_routing_table(&output_type, &closure_names, &closure_input_types));
 
+            // Get step constraints, falling back to global constraints
+            let step_constraints = closure.constraints.as_ref().or(global_constraints.as_ref());
+
             Some(generate_thread_creator(
                 Ident::new(&format!("rx_{}", closure.id), Span::call_site()),
                 next_tx,
@@ -105,6 +117,7 @@ pub(crate) fn generate_pool(closures: Vec<PipeNodeFlatten>) -> Result<TokenStrea
                 Ident::new(&format!("pods_{}", closure.id), Span::call_site()),
                 output_type,
                 routing_targets,
+                step_constraints,
             ))
         })
         .collect::<Vec<Result<TokenStream>>>()
@@ -145,6 +158,17 @@ pub(crate) fn generate_pool(closures: Vec<PipeNodeFlatten>) -> Result<TokenStrea
         }
     };
 
+    // Generate max_thread_count expression based on global constraints
+    let global_max_threads_expr = if let Some(global_constraints) = &global_constraints {
+        if let Some(max_threads) = &global_constraints.max_threads {
+            quote! { #max_threads }
+        } else {
+            quote! { num_cpus::get() }
+        }
+    } else {
+        quote! { num_cpus::get() }
+    };
+
     Ok(quote! {
         use ::ichika::status::IntoStatus;
 
@@ -152,8 +176,8 @@ pub(crate) fn generate_pool(closures: Vec<PipeNodeFlatten>) -> Result<TokenStrea
             daemon: Option<::std::thread::JoinHandle<::ichika::anyhow::Result<()>>>,
             tx_shutdown: ::ichika::flume::Sender<()>,
 
-            tx_send_request: ::ichika::flume::Sender<<Self as ::ichika::pool::ThreadPool>::Request>,
-            rx_recv_response: ::ichika::flume::Receiver<<Self as ::ichika::pool::ThreadPool>::Response>,
+            tx_send_request: ::ichika::flume::Sender<#pool_request_ty>,
+            rx_recv_response: ::ichika::flume::Receiver<#pool_response_ty>,
 
             tx_thread_usage_request: ::ichika::flume::Sender<()>,
             rx_thread_usage_response: ::ichika::flume::Receiver<usize>,
@@ -209,8 +233,8 @@ pub(crate) fn generate_pool(closures: Vec<PipeNodeFlatten>) -> Result<TokenStrea
                     let #flume_request_unbounded_first_ident = #flume_request_unbounded_first_ident.clone();
 
                     move || {
-                        // TODO: Read from outside
-                        let max_thread_count = num_cpus::get();
+                        // Apply global max_threads constraint if provided
+                        let max_thread_count = #global_max_threads_expr;
                         #pods_init_let
 
                         loop {

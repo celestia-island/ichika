@@ -16,6 +16,7 @@ fn rewrite_name(prefix: impl ToString, step: PipeNode) -> Result<PipeNodeFlatten
                 .clone()
                 .unwrap_or(Ident::new(&prefix.to_string(), Span::call_site()));
             let ClosureMacros {
+                constraints,
                 is_async,
                 arg,
                 arg_ty,
@@ -26,6 +27,7 @@ fn rewrite_name(prefix: impl ToString, step: PipeNode) -> Result<PipeNodeFlatten
 
             PipeNodeFlatten::Closure(ClosureMacrosFlatten {
                 id,
+                constraints,
                 is_async,
                 arg,
                 arg_ty,

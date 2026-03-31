@@ -1,7 +1,9 @@
 use anyhow::Result;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
-use syn::{Ident, TypePath};
+use syn::{Ident, TypePath, Expr};
+
+use crate::tools::ThreadConstraints;
 
 /// Generate the routing table code that maps closure names to their tx channels.
 /// Only includes targets whose Request type matches the current step's Response type.
@@ -31,10 +33,11 @@ pub(crate) fn generate_routing_table(
 
 /// Simple type matching check for routing table generation.
 /// Returns true if the types appear to be the same (simple check).
-fn type_matches(a: &TypePath, b: &TypePath) -> bool {
-    // For now, do a simple string comparison of the type path
-    // This handles simple types like String, usize, etc.
-    format!("{:?}", a) == format!("{:?}", b)
+pub(crate) fn type_matches(a: &TypePath, b: &TypePath) -> bool {
+    // Compare the path segments of both types
+    // This handles simple types like String, usize, as well as pathed types
+    a.path.segments.iter().map(|seg| seg.ident.to_string()).collect::<Vec<_>>()
+        == b.path.segments.iter().map(|seg| seg.ident.to_string()).collect::<Vec<_>>()
 }
 
 pub(crate) fn generate_thread_creator(
@@ -44,6 +47,7 @@ pub(crate) fn generate_thread_creator(
     target_step_pods_ident: Ident,
     output_type: TypePath,
     routing_targets: Option<TokenStream>,
+    step_constraints: Option<&ThreadConstraints>,
 ) -> Result<TokenStream> {
     // 这里的当前线程数量，默认情况下为根据该阶段任务及其后续所有任务的总数来决定
     // 例如，如果有三个阶段的当前任务数量 a b c，
@@ -57,9 +61,50 @@ pub(crate) fn generate_thread_creator(
         let routing_table: ::std::collections::HashMap<&str, ::ichika::flume::Sender<#output_type>> = ::std::collections::HashMap::new();
     });
 
+    // Generate thread limit check based on constraints
+    let thread_limit_check = if let Some(constraints) = step_constraints {
+        match (&constraints.max_threads, &constraints.min_threads) {
+            (Some(max), Some(min)) => {
+                quote! {
+                    let max_limit = #max;
+                    let min_limit = #min;
+                    !#rx_request.is_empty()
+                        && prev_pods_size + #target_step_pods_ident.len() < max_thread_count.min(max_limit)
+                        && #target_step_pods_ident.len() < max_limit
+                }
+            }
+            (Some(max), None) => {
+                quote! {
+                    let max_limit = #max;
+                    !#rx_request.is_empty()
+                        && prev_pods_size + #target_step_pods_ident.len() < max_thread_count.min(max_limit)
+                        && #target_step_pods_ident.len() < max_limit
+                }
+            }
+            (None, Some(min)) => {
+                quote! {
+                    let min_limit = #min;
+                    !#rx_request.is_empty()
+                        && prev_pods_size + #target_step_pods_ident.len() < max_thread_count
+                        && (#target_step_pods_ident.len() < min_limit || #rx_request.len() > #target_step_pods_ident.len() * 2)
+                }
+            }
+            (None, None) => {
+                quote! {
+                    !#rx_request.is_empty()
+                        && prev_pods_size + #target_step_pods_ident.len() < max_thread_count
+                }
+            }
+        }
+    } else {
+        quote! {
+            !#rx_request.is_empty()
+                && prev_pods_size + #target_step_pods_ident.len() < max_thread_count
+        }
+    };
+
     Ok(quote! {
-        if !#rx_request.is_empty()
-            && prev_pods_size + #target_step_pods_ident.len() < max_thread_count
+        if #thread_limit_check
         {
             let thread = std::thread::spawn({
                 let rx_request = #rx_request.clone();
