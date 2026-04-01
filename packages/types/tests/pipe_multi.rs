@@ -10,7 +10,7 @@ fn create_pipe_with_basic_chain() -> Result<()> {
                 req.len() - 10
             } else if req.len() > 5 {
                 req.len() - 5
-            } else if req.len() > 0 {
+            } else if !req.is_empty() {
                 req.len()
             } else {
                 0

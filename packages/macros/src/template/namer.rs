@@ -26,9 +26,9 @@ fn rewrite_name(prefix: impl ToString, step: PipeNode) -> Result<Vec<PipeNodeFla
                 ret_ty,
                 body,
                 ..
-            } = closure.clone();
+            } = *closure.clone();
 
-            vec![PipeNodeFlatten::Closure(ClosureMacrosFlatten {
+            vec![PipeNodeFlatten::Closure(Box::new(ClosureMacrosFlatten {
                 id,
                 constraints,
                 is_async,
@@ -36,7 +36,7 @@ fn rewrite_name(prefix: impl ToString, step: PipeNode) -> Result<Vec<PipeNodeFla
                 arg_ty,
                 ret_ty,
                 body,
-            })]
+            }))]
         }
         PipeNode::Map(nodes) => {
             // Generate dispatcher ID
@@ -83,12 +83,12 @@ fn rewrite_name(prefix: impl ToString, step: PipeNode) -> Result<Vec<PipeNodeFla
             }
 
             // Create the dispatcher node
-            let dispatcher = PipeNodeFlatten::Dispatcher(DispatcherMacrosFlatten {
+            let dispatcher = PipeNodeFlatten::Dispatcher(Box::new(DispatcherMacrosFlatten {
                 id: dispatcher_id,
                 input_ty,
                 output_ty,
                 branches,
-            });
+            }));
 
             // Return dispatcher followed by all branch closures
             all_nodes.insert(0, dispatcher);
@@ -101,10 +101,9 @@ pub(crate) fn rewrite_names(pipes: PipeMacros) -> Result<Vec<PipeNodeFlatten>> {
     let mut all_nodes = Vec::new();
 
     for (index, closure) in pipes.closures.iter().enumerate() {
-        let prefix = if let PipeNode::Closure(ClosureMacros { id: Some(id), .. }) = closure {
-            id.clone()
-        } else {
-            Ident::new(&format!("_step_{}", index), Span::call_site())
+        let prefix = match closure {
+            PipeNode::Closure(c) if c.id.is_some() => c.id.as_ref().unwrap().clone(),
+            _ => Ident::new(&format!("_step_{}", index), Span::call_site()),
         };
 
         let mut nodes = rewrite_name(prefix, closure.clone())?;

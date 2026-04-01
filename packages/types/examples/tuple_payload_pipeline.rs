@@ -29,11 +29,7 @@ fn main() -> Result<()> {
     // Give daemon time to start
     std::thread::sleep(std::time::Duration::from_millis(200));
 
-    let test_cases = vec![
-        "hello",
-        "world",
-        "test",
-    ];
+    let test_cases = vec!["hello", "world", "test"];
 
     for text in test_cases {
         info!("Send: {:?}", text);

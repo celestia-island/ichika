@@ -11,12 +11,8 @@ fn main() -> Result<()> {
     info!("Starting thread usage monitoring example");
 
     let pool = pipe![
-        |req: String| -> usize {
-            Ok(req.len())
-        },
-        |req: usize| -> String {
-            Ok(format!("processed: {}", req))
-        },
+        |req: String| -> usize { Ok(req.len()) },
+        |req: usize| -> String { Ok(format!("processed: {}", req)) },
     ]?;
 
     // Give daemon time to start
@@ -50,7 +46,7 @@ fn main() -> Result<()> {
     let mut received = 0;
     loop {
         let res = pool.recv()?;
-        if let Some(_) = res {
+        if res.is_some() {
             received += 1;
         } else {
             break;

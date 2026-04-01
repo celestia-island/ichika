@@ -9,7 +9,7 @@ use super::ClosureMacros;
 
 #[derive(Debug, Clone)]
 pub enum PipeNode {
-    Closure(ClosureMacros),
+    Closure(Box<ClosureMacros>),
     Map(Vec<MatchNode>),
 }
 
@@ -74,7 +74,7 @@ impl Parse for PipeMacros {
         fn dfs(input: ParseStream) -> syn::Result<PipeNode> {
             if input.peek(Token![|]) || input.peek(Token![async]) {
                 let closure = input.parse()?;
-                Ok(PipeNode::Closure(closure))
+                Ok(PipeNode::Closure(Box::new(closure)))
             } else if input.peek(Token![match]) {
                 input.parse::<Token![match]>()?;
                 let content;
@@ -94,7 +94,7 @@ impl Parse for PipeMacros {
 
                 Ok(PipeNode::Map(nodes))
             } else {
-                Ok(PipeNode::Closure(input.parse()?))
+                Ok(PipeNode::Closure(Box::new(input.parse()?)))
             }
         }
 

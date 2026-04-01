@@ -46,7 +46,7 @@ fn test_global_max_threads_constraint() -> Result<()> {
     // Verify responses are received
     let mut count = 0;
     loop {
-        if let Some(_) = pool.recv()? {
+        if pool.recv()?.is_some() {
             count += 1;
         } else {
             break;

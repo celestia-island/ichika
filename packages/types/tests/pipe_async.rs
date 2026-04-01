@@ -17,7 +17,7 @@ fn create_async_pipe() -> Result<()> {
     for i in 0..TEST_CASE_MAX_COUNT {
         for j in 0..TEST_CASE_MAX_COUNT {
             let req = (i..TEST_CASE_MAX_COUNT)
-                .map(|_| ('a' as u8 + j as u8) as char)
+                .map(|_| (b'a' + j as u8) as char)
                 .collect::<String>();
             log::info!("Send: {:?}", req);
             pool.send(req)?;

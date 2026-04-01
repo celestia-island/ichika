@@ -8,4 +8,4 @@ pub(crate) use closure::generate_closure;
 pub(crate) use closures::generate_closures;
 pub(crate) use namer::rewrite_names;
 pub(crate) use pool::generate_pool;
-pub(crate) use thread_creator::{generate_thread_creator, generate_routing_table, type_matches};
+pub(crate) use thread_creator::{generate_routing_table, generate_thread_creator, type_matches};

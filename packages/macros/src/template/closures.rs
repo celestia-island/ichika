@@ -54,8 +54,10 @@ pub(crate) fn generate_closures(steps: Vec<PipeNodeFlatten>) -> Result<TokenStre
         .iter()
         .map(|node| {
             Ok(match node {
-                PipeNodeFlatten::Closure(closure) => generate_closure(closure.clone())?,
-                PipeNodeFlatten::Dispatcher(dispatcher) => generate_dispatcher(dispatcher.clone())?,
+                PipeNodeFlatten::Closure(closure) => generate_closure(*closure.clone())?,
+                PipeNodeFlatten::Dispatcher(dispatcher) => {
+                    generate_dispatcher(*dispatcher.clone())?
+                }
             })
         })
         .collect::<Vec<Result<_>>>();
