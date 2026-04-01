@@ -16,8 +16,8 @@ pub struct ClosureMacrosFlatten {
 
 #[derive(Debug, Clone)]
 pub enum PipeNodeFlatten {
-    Closure(ClosureMacrosFlatten),
-    Dispatcher(DispatcherMacrosFlatten),
+    Closure(Box<ClosureMacrosFlatten>),
+    Dispatcher(Box<DispatcherMacrosFlatten>),
 }
 
 #[derive(Debug, Clone)]
