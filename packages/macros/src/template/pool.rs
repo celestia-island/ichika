@@ -3,7 +3,10 @@ use proc_macro2::{Span, TokenStream};
 use quote::quote;
 use syn::{Ident, TypePath};
 
-use crate::tools::{pipe_flatten::{PipeNodeFlatten, DispatcherMacrosFlatten}, ThreadConstraints};
+use crate::tools::{
+    pipe_flatten::{DispatcherMacrosFlatten, PipeNodeFlatten},
+    ThreadConstraints,
+};
 
 use super::{generate_routing_table, generate_thread_creator, type_matches};
 
@@ -40,13 +43,16 @@ impl<'a> StepRef<'a> {
     }
 }
 
-pub(crate) fn generate_pool(closures: Vec<PipeNodeFlatten>, global_constraints: Option<ThreadConstraints>) -> Result<TokenStream> {
+pub(crate) fn generate_pool(
+    closures: Vec<PipeNodeFlatten>,
+    global_constraints: Option<ThreadConstraints>,
+) -> Result<TokenStream> {
     // Both Closure and Dispatcher are processable steps
     let step_refs: Vec<StepRef> = closures
         .iter()
         .map(|step| match step {
-            PipeNodeFlatten::Closure(c) => StepRef::Closure(c),
-            PipeNodeFlatten::Dispatcher(d) => StepRef::Dispatcher(d),
+            PipeNodeFlatten::Closure(c) => StepRef::Closure(c.as_ref()),
+            PipeNodeFlatten::Dispatcher(d) => StepRef::Dispatcher(d.as_ref()),
         })
         .collect();
 
@@ -129,11 +135,16 @@ pub(crate) fn generate_pool(closures: Vec<PipeNodeFlatten>, global_constraints: 
 
             // Collect all closure names and their input types for routing table
             let closure_names: Vec<Ident> = step_refs.iter().map(|s| s.id().clone()).collect();
-            let closure_input_types: Vec<_> = step_refs.iter().map(|s| s.input_ty().clone()).collect();
+            let closure_input_types: Vec<_> =
+                step_refs.iter().map(|s| s.input_ty().clone()).collect();
 
             // Create routing table for this thread (only type-compatible targets)
             let output_type = step.output_ty().clone();
-            let routing_targets = Some(generate_routing_table(&output_type, &closure_names, &closure_input_types));
+            let routing_targets = Some(generate_routing_table(
+                &output_type,
+                &closure_names,
+                &closure_input_types,
+            ));
 
             // Get step constraints, falling back to global constraints
             let step_constraints = step.constraints().or(global_constraints.as_ref());

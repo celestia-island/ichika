@@ -24,7 +24,7 @@ fn test_basic_pipeline_with_result_wrapping() -> Result<()> {
     let mut received = 0;
     loop {
         let res = pool.recv()?;
-        if let Some(_) = res {
+        if res.is_some() {
             received += 1;
         } else {
             break;
@@ -67,7 +67,7 @@ fn test_panic_handling() -> Result<()> {
     let mut received = 0;
     loop {
         let res = pool.recv()?;
-        if let Some(_) = res {
+        if res.is_some() {
             received += 1;
         } else {
             break;

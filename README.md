@@ -1,4 +1,4 @@
-<img src="splash.png" alt="ichika" />
+<p align="center"><img src="docs/logo.webp" alt="Ichika" width="240" /></p>
 
 ![Crates.io License](https://img.shields.io/crates/l/ichika)
 [![Crates.io Version](https://img.shields.io/crates/v/ichika)](https://docs.rs/ichika)

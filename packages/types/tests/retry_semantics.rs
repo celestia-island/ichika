@@ -20,12 +20,8 @@ fn test_basic_retry_discards_after_max_attempts() -> Result<()> {
 
     // After max attempts are exhausted, Retry discards the item – nothing arrives.
     let mut received = 0;
-    loop {
-        if let Some(_) = pool.recv()? {
-            received += 1;
-        } else {
-            break;
-        }
+    while pool.recv()?.is_some() {
+        received += 1;
     }
     assert_eq!(received, 0);
 
@@ -52,13 +48,9 @@ fn test_retry_with_fallback_value() -> Result<()> {
     std::thread::sleep(std::time::Duration::from_millis(400));
 
     let mut received = 0;
-    loop {
-        if let Some(res) = pool.recv()? {
-            assert_eq!(res, "done");
-            received += 1;
-        } else {
-            break;
-        }
+    while let Some(res) = pool.recv()? {
+        assert_eq!(res, "done");
+        received += 1;
     }
     assert_eq!(received, 1);
 
@@ -81,12 +73,8 @@ fn test_retry_always_discards_on_max_exceeded() -> Result<()> {
     std::thread::sleep(std::time::Duration::from_millis(500));
 
     let mut received = 0;
-    loop {
-        if let Some(_) = pool.recv()? {
-            received += 1;
-        } else {
-            break;
-        }
+    while pool.recv()?.is_some() {
+        received += 1;
     }
     assert_eq!(received, 0);
 
@@ -113,13 +101,9 @@ fn test_retry_with_delay_respected() -> Result<()> {
     std::thread::sleep(std::time::Duration::from_millis(600));
 
     let mut received = 0;
-    loop {
-        if let Some(res) = pool.recv()? {
-            assert_eq!(res, "delayed");
-            received += 1;
-        } else {
-            break;
-        }
+    while let Some(res) = pool.recv()? {
+        assert_eq!(res, "delayed");
+        received += 1;
     }
 
     let elapsed = start.elapsed();
@@ -158,12 +142,8 @@ fn test_retry_with_sends_fallback_when_condition_never_met() -> Result<()> {
     std::thread::sleep(std::time::Duration::from_millis(300));
 
     let mut results = Vec::new();
-    loop {
-        if let Some(res) = pool.recv()? {
-            results.push(res);
-        } else {
-            break;
-        }
+    while let Some(res) = pool.recv()? {
+        results.push(res);
     }
 
     assert_eq!(results.len(), 2);
@@ -188,13 +168,9 @@ fn test_retry_immediate_success() -> Result<()> {
     std::thread::sleep(std::time::Duration::from_millis(300));
 
     let mut received = 0;
-    loop {
-        if let Some(res) = pool.recv()? {
-            assert_eq!(res, "processed:valid");
-            received += 1;
-        } else {
-            break;
-        }
+    while let Some(res) = pool.recv()? {
+        assert_eq!(res, "processed:valid");
+        received += 1;
     }
     assert_eq!(received, 1);
 
@@ -227,12 +203,8 @@ fn test_retry_with_fallback_in_multi_step_pipeline() -> Result<()> {
     std::thread::sleep(std::time::Duration::from_millis(300));
 
     let mut results: Vec<usize> = Vec::new();
-    loop {
-        if let Some(res) = pool.recv()? {
-            results.push(res);
-        } else {
-            break;
-        }
+    while let Some(res) = pool.recv()? {
+        results.push(res);
     }
 
     // "nonempty" -> len = 8, "hi" -> len = 2
