@@ -1,7 +1,6 @@
 <p align="center"><img src="docs/logo.webp" alt="Ichika" width="240" /></p>
 
-![Crates.io License](https://img.shields.io/crates/l/ichika)
-[![Crates.io Version](https://img.shields.io/crates/v/ichika)](https://docs.rs/ichika)
+[![License: SySL](https://img.shields.io/badge/license-SySL%201.0-blue)](./LICENSE.txt)[![Crates.io Version](https://img.shields.io/crates/v/ichika)](https://docs.rs/ichika)
 ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/celestia-island/ichika/test.yml)
 
 ## Introduction
@@ -53,3 +52,7 @@ for i in 0..10 {
 - [x] Multiple target `match` with any depth.
 - [x] Error handle target `catch`.
 - [x] Retryable target `retry` with timeout parameter.
+
+## License
+
+Licensed under the [Synthetic Source License (SySL), Version 1.0](./LICENSE.txt).
