@@ -3,8 +3,8 @@
 
   var LANGUAGES = [
     { code: 'en', label: 'English', prefix: '', browserLangs: ['en'] },
-    { code: 'zh-hans', label: '简体中文', prefix: '/zh-hans', browserLangs: ['zh-cn', 'zh-sg', 'zh-hans', 'zh'] },
-    { code: 'zh-hant', label: '繁體中文', prefix: '/zh-hant', browserLangs: ['zh-tw', 'zh-hk', 'zh-mo', 'zh-hant'] },
+    { code: 'zhs', label: '简体中文', prefix: '/zhs', browserLangs: ['zh-cn', 'zh-sg', 'zh-hans', 'zh'] },
+    { code: 'zht', label: '繁體中文', prefix: '/zht', browserLangs: ['zh-tw', 'zh-hk', 'zh-mo', 'zh-hant'] },
     { code: 'ja', label: '日本語', prefix: '/ja', browserLangs: ['ja'] },
     { code: 'ko', label: '한국어', prefix: '/ko', browserLangs: ['ko'] },
     { code: 'fr', label: 'Français', prefix: '/fr', browserLangs: ['fr'] },
@@ -16,8 +16,8 @@
   var NOTIFICATION_DISMISSED_KEY = 'ichika-lang-notification-dismissed';
 
   var NOTIFICATION_TEXTS = {
-    'zh-hans': { message: '此文档也有简体中文版本。', action: '切换到中文', dismiss: '不再提示' },
-    'zh-hant': { message: '此文件也有繁體中文版本。', action: '切換到中文', dismiss: '不再提示' },
+    'zhs': { message: '此文档也有简体中文版本。', action: '切换到中文', dismiss: '不再提示' },
+    'zht': { message: '此文件也有繁體中文版本。', action: '切換到中文', dismiss: '不再提示' },
     'ja': { message: 'このドキュメントには日本語版もあります。', action: '日本語に切替', dismiss: '閉じる' },
     'ko': { message: '이 문서는 한국어로도 제공됩니다.', action: '한국어로 전환', dismiss: '닫기' },
     'fr': { message: 'Cette documentation est disponible en français.', action: 'Passer au français', dismiss: 'Fermer' },

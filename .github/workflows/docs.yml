@@ -30,7 +30,7 @@ jobs:
 
       - name: Build all language docs
         run: |
-          for lang in en zh-hans zh-hant fr es ru ar ja ko; do
+          for lang in en zhs zht fr es ru ar ja ko; do
             echo "Building $lang..."
             mdbook build docs/$lang
           done
@@ -41,12 +41,12 @@ jobs:
           # English at root
           cp -r target/docs/en/* _site/
           # Other languages in subdirectories
-          for lang in zh-hans zh-hant fr es ru ar ja ko; do
+          for lang in zhs zht fr es ru ar ja ko; do
             cp -r target/docs/$lang _site/$lang
           done
           cp docs/theme/lang-switcher.js _site/theme/
           cp docs/theme/lang-switcher.css _site/theme/
-          echo "ichika.celestia.world" > _site/CNAME
+          echo "ichika.docs.celestia.world" > _site/CNAME
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
