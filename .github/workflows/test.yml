@@ -3,7 +3,7 @@ name: Test
 on:
   pull_request:
     paths:
-      - '.github/workflows/clippy.yml'
+      - '.github/workflows/test.yml'
       - 'packages/**/*'
       - 'examples/**/*'
       - 'Cargo.toml'

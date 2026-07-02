@@ -4,13 +4,13 @@ version.workspace = true
 edition.workspace = true
 
 publish = true
-authors = ["langyo <langyo.china@gmail.com>"]
+authors.workspace = true
 description = "A helper library for automatically constructing a thread pool that communicates via message pipes."
-license = "Apache-2.0"
+license = "SySL-1.0"
 repository = "https://github.com/celestia-island/ichika"
 
 [lib]
-crate-type = ["rlib", "cdylib"]
+crate-type = ["rlib"]
 
 [dependencies]
 _macros = { path = "../macros", version = "^0.1.1", package = "ichika-macros" }
