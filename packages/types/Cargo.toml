@@ -16,9 +16,6 @@ crate-type = ["rlib", "cdylib"]
 _macros = { path = "../macros", version = "^0.1.1", package = "ichika-macros" }
 
 anyhow = { workspace = true }
-async-trait = { workspace = true }
-derive_more = { workspace = true }
-
 futures = { workspace = true }
 flume = { workspace = true }
 

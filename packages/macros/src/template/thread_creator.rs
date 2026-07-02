@@ -124,62 +124,62 @@ pub(crate) fn generate_thread_creator(
                         loop {
                             let res = #target_step_ident::run(req.clone());
                             match res {
-                                ::ichika::Status::Next(res) => {
-                                    tx_response.send(res).unwrap();
-                                    break;
-                                }
-                                ::ichika::Status::Exit => {
-                                    break;
-                                }
-                                ::ichika::Status::Retry => {
-                                    // Retry the step with the same original request.
-                                    // On max attempts exceeded, the item is silently discarded.
-                                    if attempt < ::ichika::RetryPolicy::default().max_attempts {
-                                        std::thread::sleep(std::time::Duration::from_millis(::ichika::RetryPolicy::default().delay_ms));
-                                        attempt += 1;
-                                        continue;
-                                    } else {
+                                    ::ichika::Status::Next(res) => {
+                                        let _ = tx_response.send(res);
                                         break;
                                     }
-                                }
-                                ::ichika::Status::RetryWith(policy, _, fallback) => {
-                                    // Retry the step with the same original request.
-                                    // On max attempts exceeded, emit the provided fallback (Output type).
-                                    if attempt < policy.max_attempts {
-                                        std::thread::sleep(std::time::Duration::from_millis(policy.delay_ms));
-                                        attempt += 1;
-                                        continue;
-                                    } else {
-                                        tx_response.send(fallback).unwrap();
+                                    ::ichika::Status::Exit => {
                                         break;
                                     }
-                                }
-                                ::ichika::Status::Panic(err) => {
-                                    eprintln!("Step {} panicked: {:?}", #target_step_ident::id(), err);
-                                    break;
-                                }
-                                ::ichika::Status::Switch((target, payload)) => {
-                                    if let Some(tx) = routing_table.get(target) {
-                                        tx.send(payload).unwrap();
-                                    } else {
-                                        eprintln!("Warning: Switch target '{}' not found or type incompatible, falling back to next step", target);
-                                        tx_response.send(payload).unwrap();
+                                    ::ichika::Status::Retry => {
+                                        // Retry the step with the same original request.
+                                        // On max attempts exceeded, the item is silently discarded.
+                                        if attempt < ::ichika::RetryPolicy::default().max_attempts {
+                                            std::thread::sleep(std::time::Duration::from_millis(::ichika::RetryPolicy::default().delay_ms));
+                                            attempt += 1;
+                                            continue;
+                                        } else {
+                                            break;
+                                        }
                                     }
-                                    break;
-                                }
-                                ::ichika::Status::PanicSwitch((target, err)) => {
-                                    eprintln!("PanicSwitch to target '{}' with error: {:?}", target, err);
-                                    break;
-                                }
-                                ::ichika::Status::Back((target, payload)) => {
-                                    if let Some(tx) = routing_table.get(target) {
-                                        tx.send(payload).unwrap();
-                                    } else {
-                                        eprintln!("Warning: Back target '{}' not found or type incompatible, falling back to next step", target);
-                                        tx_response.send(payload).unwrap();
+                                    ::ichika::Status::RetryWith(policy, _, fallback) => {
+                                        // Retry the step with the same original request.
+                                        // On max attempts exceeded, emit the provided fallback (Output type).
+                                        if attempt < policy.max_attempts {
+                                            std::thread::sleep(std::time::Duration::from_millis(policy.delay_ms));
+                                            attempt += 1;
+                                            continue;
+                                        } else {
+                                            let _ = tx_response.send(fallback);
+                                            break;
+                                        }
                                     }
-                                    break;
-                                }
+                                    ::ichika::Status::Panic(err) => {
+                                        log::error!("Step {} panicked: {:?}", #target_step_ident::id(), err);
+                                        break;
+                                    }
+                                    ::ichika::Status::Switch((target, payload)) => {
+                                        if let Some(tx) = routing_table.get(target) {
+                                            let _ = tx.send(payload);
+                                        } else {
+                                            log::warn!("Warning: Switch target '{}' not found or type incompatible, falling back to next step", target);
+                                            let _ = tx_response.send(payload);
+                                        }
+                                        break;
+                                    }
+                                    ::ichika::Status::PanicSwitch((target, err)) => {
+                                        log::error!("PanicSwitch to target '{}' with error: {:?}", target, err);
+                                        break;
+                                    }
+                                    ::ichika::Status::Back((target, payload)) => {
+                                        if let Some(tx) = routing_table.get(target) {
+                                            let _ = tx.send(payload);
+                                        } else {
+                                            log::warn!("Warning: Back target '{}' not found or type incompatible, falling back to next step", target);
+                                            let _ = tx_response.send(payload);
+                                        }
+                                        break;
+                                    }
                             };
                         }
                     }

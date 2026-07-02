@@ -25,7 +25,7 @@ impl<'a> StepRef<'a> {
     }
     fn input_ty(&self) -> &TypePath {
         match self {
-            StepRef::Closure(c) => c.arg_ty.first().unwrap(),
+            StepRef::Closure(c) => c.arg_ty.first().expect("Closure arg_ty is empty"),
             StepRef::Dispatcher(d) => &d.input_ty,
         }
     }
@@ -256,17 +256,15 @@ pub(crate) fn generate_pool(
                             #( #thread_creators )*
 
                             if rx_thread_usage_request.try_recv().is_ok() {
-                                tx_thread_usage_response
-                                    .send(#( #calculate_pods_len_code )+*)
-                                    .unwrap();
+                                let _ = tx_thread_usage_response
+                                    .send(#( #calculate_pods_len_code )+*);
                             }
                             if rx_task_count_request.try_recv().is_ok() {
-                                tx_task_count_response
+                                let _ = tx_task_count_response
                                     .send(
                                         #( #calculate_pods_len_code )+*
                                             + #flume_request_unbounded_first_ident.len(),
-                                    )
-                                    .unwrap();
+                                    );
                             }
                             if rx_shutdown.try_recv().is_ok() {
                                 break;
@@ -304,8 +302,10 @@ pub(crate) fn generate_pool(
 
         impl Drop for _Pool {
             fn drop(&mut self) {
-                self.tx_shutdown.send(()).unwrap();
-                self.daemon.take().unwrap().join().unwrap().unwrap();
+                let _ = self.tx_shutdown.send(());
+                if let Some(daemon) = self.daemon.take() {
+                    let _ = daemon.join();
+                }
             }
         }
     })
