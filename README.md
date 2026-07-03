@@ -1,4 +1,4 @@
-<p align="center"><img src="docs/logo.webp" alt="Ichika" width="240" /></p>
+<p align="center"><img src="https://raw.githubusercontent.com/celestia-island/ichika/master/docs/logo.webp" alt="Ichika" width="240" /></p>
 
 [![License: SySL](https://img.shields.io/badge/license-SySL%201.0-blue)](./LICENSE)
 [![Crates.io Version](https://img.shields.io/crates/v/ichika)](https://crates.io/crates/ichika)
