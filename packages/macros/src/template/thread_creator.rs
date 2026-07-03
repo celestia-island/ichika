@@ -75,11 +75,12 @@ pub(crate) fn generate_thread_creator(
     // Generate thread limit check based on constraints
     let thread_limit_check = if let Some(constraints) = step_constraints {
         match (&constraints.max_threads, &constraints.min_threads) {
-            (Some(max), Some(_min)) => {
+            (Some(max), Some(min)) => {
                 quote! {
                     !#rx_request.is_empty()
                         && prev_pods_size + #target_step_pods_ident.len() < max_thread_count.min(#max)
                         && #target_step_pods_ident.len() < #max
+                        && (#target_step_pods_ident.len() < #min || #rx_request.len() > #target_step_pods_ident.len() * 2)
                 }
             }
             (Some(max), None) => {
