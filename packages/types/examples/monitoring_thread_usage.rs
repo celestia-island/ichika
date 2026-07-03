@@ -11,8 +11,13 @@ fn main() -> Result<()> {
     info!("Starting thread usage monitoring example");
 
     let pool = pipe![
-        |req: String| -> usize { Ok(req.len()) },
-        |req: usize| -> String { Ok(format!("processed: {}", req)) },
+        stage1: (max_threads: 1) |req: String| -> usize {
+            // A small artificial delay makes the input backlog observable,
+            // so task_count("stage1") reports a non-zero depth during the burst.
+            std::thread::sleep(std::time::Duration::from_millis(30));
+            Ok(req.len())
+        },
+        stage2: |req: usize| -> String { Ok(format!("processed: {}", req)) },
     ]?;
 
     // Give daemon time to start
@@ -25,20 +30,20 @@ fn main() -> Result<()> {
         pool.send(text)?;
     }
 
-    // Monitor thread usage periodically
+    // Monitor thread usage periodically; sample the backlog *before* each sleep
+    // so the first reading catches the just-queued tasks.
     for iteration in 0..5 {
-        std::thread::sleep(std::time::Duration::from_millis(100));
-
         let thread_usage = pool.thread_usage()?;
         info!("Iteration {}: Thread usage = {}", iteration, thread_usage);
 
-        // Check task count for each stage
-        // Note: stage names correspond to closure positions
-        for stage in ["0", "1"] {
+        // Check task count for each stage by its declared name
+        for stage in ["stage1", "stage2"] {
             if let Ok(count) = pool.task_count(stage) {
                 info!("  Stage {} task count = {}", stage, count);
             }
         }
+
+        std::thread::sleep(std::time::Duration::from_millis(100));
     }
 
     // Receive all responses

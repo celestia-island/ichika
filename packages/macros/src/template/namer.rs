@@ -102,7 +102,10 @@ pub(crate) fn rewrite_names(pipes: PipeMacros) -> Result<Vec<PipeNodeFlatten>> {
 
     for (index, closure) in pipes.closures.iter().enumerate() {
         let prefix = match closure {
-            PipeNode::Closure(c) if c.id.is_some() => c.id.clone().unwrap(),
+            PipeNode::Closure(c) => {
+                c.id.clone()
+                    .unwrap_or_else(|| Ident::new(&format!("_step_{}", index), Span::call_site()))
+            }
             _ => Ident::new(&format!("_step_{}", index), Span::call_site()),
         };
 

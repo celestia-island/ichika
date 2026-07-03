@@ -284,7 +284,6 @@ cargo run --example basic_async_chain --features tokio
 
 - `basic_sync_chain.rs` — خط الأنابيب المتزامن
 - `basic_async_chain.rs` — خط الأنابيب غير المتزامن
-- `error_handling.rs` — انتشار الأخطاء
 - `graceful_shutdown_drop.rs` — التنظيف عند الإسقاط
 - `monitoring_thread_usage.rs` — واجهة برمجة تطبيقات المراقبة
 - `tuple_payload_pipeline.rs` — أنواع حمولات معقدة

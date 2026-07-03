@@ -42,8 +42,10 @@ pub(crate) fn generate_closure(closure: ClosureMacrosFlatten) -> Result<TokenStr
                 type Response = #ret_ty;
 
                 fn run(#arg: Self::Request) -> ::ichika::Status<Self::Response, ::ichika::anyhow::Error> {
-                  let rt = ::ichika::tokio::runtime::Runtime::new().unwrap();
-                  rt.block_on(async move { #body }).into_status()
+                  ::ichika::tokio::runtime::Runtime::new()
+                    .map_err(|e| ::ichika::anyhow::anyhow!("Failed to create tokio runtime: {}", e))
+                    .and_then(|rt| rt.block_on(async move { #body }))
+                    .into_status()
                 }
               }
 

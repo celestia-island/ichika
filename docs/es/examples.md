@@ -284,7 +284,6 @@ Revisa el directorio `examples/` en el repositorio para más ejemplos completos:
 
 - `basic_sync_chain.rs` - Canalización sincrónica
 - `basic_async_chain.rs` - Canalización asíncrona
-- `error_handling.rs` - Propagación de errores
 - `graceful_shutdown_drop.rs` - Limpieza al descartar
 - `monitoring_thread_usage.rs` - API de monitoreo
 - `tuple_payload_pipeline.rs` - Tipos de payload complejos

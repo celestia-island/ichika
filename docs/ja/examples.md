@@ -284,7 +284,6 @@ cargo run --example basic_async_chain --features tokio
 
 - `basic_sync_chain.rs` - 同期パイプライン
 - `basic_async_chain.rs` - 非同期パイプライン
-- `error_handling.rs` - エラー伝播
 - `graceful_shutdown_drop.rs` - ドロップ時のクリーンアップ
 - `monitoring_thread_usage.rs` - 監視API
 - `tuple_payload_pipeline.rs` - 複雑なペイロード型

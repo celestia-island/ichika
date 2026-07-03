@@ -118,3 +118,32 @@ fn test_match_routing_e2e() -> Result<()> {
 
     Ok(())
 }
+
+#[test]
+fn test_match_routing_on_non_copy_type() -> Result<()> {
+    // The dispatcher's input here is `String` (Clone, but NOT Copy). Previously
+    // the generated dispatcher `match req { .. => Switch((_, req)) }` failed to
+    // compile because `req` was moved into the match scrutinee. This locks in
+    // the fix and verifies the value is forwarded correctly to the branch.
+    let pool = pipe![
+        classify: |req: String| -> String { Ok(req) },
+        match {
+            _ => sink: |req: String| -> usize { Ok(req.len()) },
+        }
+    ]?;
+
+    std::thread::sleep(std::time::Duration::from_millis(200));
+
+    pool.send("hello".to_string())?;
+    std::thread::sleep(std::time::Duration::from_millis(300));
+
+    loop {
+        let res = pool.recv()?;
+        if let Some(res) = res {
+            assert_eq!(res, 5);
+            break;
+        }
+    }
+
+    Ok(())
+}

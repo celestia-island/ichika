@@ -30,7 +30,6 @@ pub struct DispatcherMacrosFlatten {
 
 #[derive(Debug, Clone)]
 pub struct BranchInfo {
-    #[allow(dead_code)]
     pub condition: Expr,
     pub target_id: Ident,
 }

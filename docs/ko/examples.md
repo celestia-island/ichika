@@ -284,7 +284,6 @@ cargo run --example basic_async_chain --features tokio
 
 - `basic_sync_chain.rs` - 동기 파이프라인
 - `basic_async_chain.rs` - 비동기 파이프라인
-- `error_handling.rs` - 오류 전파
 - `graceful_shutdown_drop.rs` - 삭제 시 정리
 - `monitoring_thread_usage.rs` - 모니터링 API
 - `tuple_payload_pipeline.rs` - 복잡한 페이로드 유형

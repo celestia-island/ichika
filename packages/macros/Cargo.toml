@@ -14,9 +14,8 @@ proc-macro = true
 
 [dependencies]
 anyhow = { workspace = true }
-derive_more = { workspace = true }
 
-syn = { version = "^2", features = ["full"] }
+syn = { version = "^2", features = ["full", "extra-traits"] }
 proc-macro2 = { version = "^1", features = ["span-locations"] }
 quote = "^1"
 

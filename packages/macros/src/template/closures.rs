@@ -14,13 +14,17 @@ pub(crate) fn generate_dispatcher(dispatcher: DispatcherMacrosFlatten) -> Result
     } = dispatcher;
     let id_raw = quote! { stringify!(#id) };
 
-    // Generate match arms for the dispatcher
+    // Generate match arms for the dispatcher.
+    // `match req` moves the value, but the dispatcher must forward the original
+    // request to the routed branch — so we clone once before matching and move
+    // that clone into the result. Matching by value (not by reference) preserves
+    // by-value pattern/guard semantics for Copy inputs.
     let match_arms = branches.iter().map(|branch| {
         let condition = &branch.condition;
         let target_id = &branch.target_id;
         let target_str = target_id.to_string();
         quote! {
-            #condition => ::ichika::Status::Switch((#target_str, req)),
+            #condition => #target_str,
         }
     });
 
@@ -35,9 +39,11 @@ pub(crate) fn generate_dispatcher(dispatcher: DispatcherMacrosFlatten) -> Result
             type Response = #output_ty;
 
             fn run(req: Self::Request) -> ::ichika::Status<Self::Response, ::ichika::anyhow::Error> {
-                match req {
+                let __dispatched = req.clone();
+                let __target = match req {
                     #( #match_arms )*
-                }
+                };
+                ::ichika::Status::Switch((__target, __dispatched))
             }
         }
 
@@ -61,12 +67,8 @@ pub(crate) fn generate_closures(steps: Vec<PipeNodeFlatten>) -> Result<TokenStre
             })
         })
         .collect::<Vec<Result<_>>>();
-    let closure_impl_list = closure_impl_list
-        .into_iter()
-        .collect::<Result<Vec<_>>>()
-        .expect(
-            "Failed to generate closure implementation list. Please check the error message above.",
-        );
+    let closure_impl_list: Vec<TokenStream> =
+        closure_impl_list.into_iter().collect::<Result<Vec<_>>>()?;
 
     Ok(quote! {
       #(#closure_impl_list)*

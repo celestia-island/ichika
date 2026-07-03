@@ -8,18 +8,28 @@ use syn::parse_macro_input;
 use template::{generate_closures, rewrite_names};
 use tools::PipeMacros;
 
+fn emit_compile_error(e: anyhow::Error) -> TokenStream {
+    let msg = e.to_string();
+    quote! { compile_error!(#msg) }.into()
+}
+
 #[proc_macro]
 pub fn pipe(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as PipeMacros);
     let global_constraints = input.global_constraints.clone();
-    let input = rewrite_names(input)
-        .expect("Failed to rewrite names. Please check the error message above.");
 
-    let closure_impl_list = generate_closures(input.clone()).expect(
-        "Failed to generate closure implementation list. Please check the error message above.",
-    );
-    let pool_decl = template::generate_pool(input, global_constraints)
-        .expect("Failed to generate pool declaration. Please check the error message above.");
+    let input = match rewrite_names(input) {
+        Ok(v) => v,
+        Err(e) => return emit_compile_error(e),
+    };
+    let closure_impl_list = match generate_closures(input.clone()) {
+        Ok(v) => v,
+        Err(e) => return emit_compile_error(e),
+    };
+    let pool_decl = match template::generate_pool(input, global_constraints) {
+        Ok(v) => v,
+        Err(e) => return emit_compile_error(e),
+    };
 
     quote! {
         {

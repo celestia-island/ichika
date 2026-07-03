@@ -155,27 +155,27 @@ pub(crate) fn generate_thread_creator(
                                         }
                                     }
                                     ::ichika::Status::Panic(err) => {
-                                        log::error!("Step {} panicked: {:?}", #target_step_ident::id(), err);
+                                        ::ichika::log::error!("Step {} panicked: {:?}", #target_step_ident::id(), err);
                                         break;
                                     }
                                     ::ichika::Status::Switch((target, payload)) => {
                                         if let Some(tx) = routing_table.get(target) {
                                             let _ = tx.send(payload);
                                         } else {
-                                            log::warn!("Warning: Switch target '{}' not found or type incompatible, falling back to next step", target);
+                                            ::ichika::log::warn!("Warning: Switch target '{}' not found or type incompatible, falling back to next step", target);
                                             let _ = tx_response.send(payload);
                                         }
                                         break;
                                     }
                                     ::ichika::Status::PanicSwitch((target, err)) => {
-                                        log::error!("PanicSwitch to target '{}' with error: {:?}", target, err);
+                                        ::ichika::log::error!("PanicSwitch to target '{}' with error: {:?}", target, err);
                                         break;
                                     }
                                     ::ichika::Status::Back((target, payload)) => {
                                         if let Some(tx) = routing_table.get(target) {
                                             let _ = tx.send(payload);
                                         } else {
-                                            log::warn!("Warning: Back target '{}' not found or type incompatible, falling back to next step", target);
+                                            ::ichika::log::warn!("Warning: Back target '{}' not found or type incompatible, falling back to next step", target);
                                             let _ = tx_response.send(payload);
                                         }
                                         break;

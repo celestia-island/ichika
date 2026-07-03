@@ -284,7 +284,6 @@ Check the `examples/` directory in the repository for more complete examples:
 
 - `basic_sync_chain.rs` - Synchronous pipeline
 - `basic_async_chain.rs` - Asynchronous pipeline
-- `error_handling.rs` - Error propagation
 - `graceful_shutdown_drop.rs` - Cleanup on drop
 - `monitoring_thread_usage.rs` - Monitoring APIs
 - `tuple_payload_pipeline.rs` - Complex payload types

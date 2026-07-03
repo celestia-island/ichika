@@ -23,10 +23,13 @@ impl<'a> StepRef<'a> {
             StepRef::Dispatcher(d) => &d.id,
         }
     }
-    fn input_ty(&self) -> &TypePath {
+    fn input_ty(&self) -> Result<&TypePath> {
         match self {
-            StepRef::Closure(c) => c.arg_ty.first().expect("Closure arg_ty is empty"),
-            StepRef::Dispatcher(d) => &d.input_ty,
+            StepRef::Closure(c) => c
+                .arg_ty
+                .first()
+                .ok_or_else(|| anyhow!("Closure \"{}\" has no input argument", c.id)),
+            StepRef::Dispatcher(d) => Ok(&d.input_ty),
         }
     }
     fn output_ty(&self) -> &TypePath {
@@ -58,17 +61,17 @@ pub(crate) fn generate_pool(
 
     let tx_rx_request_flume_unbounded = step_refs
         .iter()
-        .map(|step| {
+        .map(|step| -> Result<TokenStream> {
             let name = step.id().clone();
-            let input_ty = step.input_ty().clone();
+            let input_ty = step.input_ty()?.clone();
 
             let tx_ident = Ident::new(&format!("tx_{}", name), Span::call_site());
             let rx_ident = Ident::new(&format!("rx_{}", name), Span::call_site());
-            quote! {
+            Ok(quote! {
                let (#tx_ident, #rx_ident) = ::ichika::flume::unbounded::<#input_ty>();
-            }
+            })
         })
-        .collect::<Vec<TokenStream>>();
+        .collect::<Result<Vec<TokenStream>>>()?;
     let flume_request_unbounded_first_ident = {
         let step = step_refs.first().ok_or(anyhow!("No closure"))?;
         Ident::new(&format!("tx_{}", step.id()), Span::call_site())
@@ -115,6 +118,22 @@ pub(crate) fn generate_pool(
         })
         .collect::<Vec<TokenStream>>();
 
+    // Per-stage task count arms: each named stage reports its own backlog
+    // (pending in its input channel + active worker pods), honoring the
+    // `task_count(stage)` contract instead of collapsing every stage into one total.
+    let task_count_arms = step_refs
+        .iter()
+        .map(|step| {
+            let id = step.id();
+            let id_str = id.to_string();
+            let rx_ident = Ident::new(&format!("rx_{}", id), Span::call_site());
+            let pods_ident = Ident::new(&format!("pods_{}", id), Span::call_site());
+            quote! {
+                #id_str => #rx_ident.len() + #pods_ident.len(),
+            }
+        })
+        .collect::<Vec<TokenStream>>();
+
     let thread_creators = step_refs
         .iter()
         .enumerate()
@@ -125,7 +144,8 @@ pub(crate) fn generate_pool(
                 .iter()
                 .skip(i + 1)
                 .find_map(|s| {
-                    if type_matches(s.input_ty(), current_output_type) {
+                    let input_ty = s.input_ty().ok()?;
+                    if type_matches(input_ty, current_output_type) {
                         Some(Ident::new(&format!("tx_{}", s.id()), Span::call_site()))
                     } else {
                         None
@@ -135,8 +155,10 @@ pub(crate) fn generate_pool(
 
             // Collect all closure names and their input types for routing table
             let closure_names: Vec<Ident> = step_refs.iter().map(|s| s.id().clone()).collect();
-            let closure_input_types: Vec<_> =
-                step_refs.iter().map(|s| s.input_ty().clone()).collect();
+            let closure_input_types: Vec<_> = step_refs
+                .iter()
+                .map(|s| s.input_ty().cloned())
+                .collect::<Result<Vec<_>>>()?;
 
             // Create routing table for this thread (only type-compatible targets)
             let output_type = step.output_ty().clone();
@@ -163,7 +185,7 @@ pub(crate) fn generate_pool(
 
     let pool_request_ty = {
         let step = step_refs.first().ok_or(anyhow!("No closure"))?;
-        step.input_ty().clone()
+        step.input_ty()?.clone()
     };
     let pool_response_ty = {
         let step = step_refs.last().ok_or(anyhow!("No closure"))?;
@@ -232,11 +254,11 @@ pub(crate) fn generate_pool(
             pub fn new() -> ::ichika::anyhow::Result<_Pool> {
                 use ::ichika::{node::*, pod::ThreadPod};
 
-                let (tx_shutdown, rx_shutdown) = ::ichika::flume::bounded(1);
-                let (tx_thread_usage_request, rx_thread_usage_request) = ::ichika::flume::bounded(1);
-                let (tx_thread_usage_response, rx_thread_usage_response) = ::ichika::flume::bounded(1);
-                let (tx_task_count_request, rx_task_count_request) = ::ichika::flume::bounded(1);
-                let (tx_task_count_response, rx_task_count_response) = ::ichika::flume::bounded(1);
+                let (tx_shutdown, rx_shutdown) = ::ichika::flume::bounded::<()>(1);
+                let (tx_thread_usage_request, rx_thread_usage_request) = ::ichika::flume::bounded::<()>(1);
+                let (tx_thread_usage_response, rx_thread_usage_response) = ::ichika::flume::bounded::<usize>(1);
+                let (tx_task_count_request, rx_task_count_request) = ::ichika::flume::bounded::<String>(1);
+                let (tx_task_count_response, rx_task_count_response) = ::ichika::flume::bounded::<usize>(1);
 
                 #( #tx_rx_request_flume_unbounded )*
                 let (tx_pods_response, rx_pods_response) = ::ichika::flume::unbounded::<#pool_response_ty>();
@@ -259,12 +281,12 @@ pub(crate) fn generate_pool(
                                 let _ = tx_thread_usage_response
                                     .send(#( #calculate_pods_len_code )+*);
                             }
-                            if rx_task_count_request.try_recv().is_ok() {
-                                let _ = tx_task_count_response
-                                    .send(
-                                        #( #calculate_pods_len_code )+*
-                                            + #flume_request_unbounded_first_ident.len(),
-                                    );
+                            if let Ok(__task_stage) = rx_task_count_request.try_recv() {
+                                let __task_count = match __task_stage.as_str() {
+                                    #( #task_count_arms )*
+                                    _ => 0,
+                                };
+                                let _ = tx_task_count_response.send(__task_count);
                             }
                             if rx_shutdown.try_recv().is_ok() {
                                 break;
@@ -284,7 +306,6 @@ pub(crate) fn generate_pool(
                         ::ichika::anyhow::Ok(())
                     }
                 });
-
                 Ok(Self {
                     daemon: Some(daemon),
                     tx_shutdown,

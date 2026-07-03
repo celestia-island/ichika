@@ -229,3 +229,43 @@ fn test_single_step_with_constraint() -> Result<()> {
 
     Ok(())
 }
+
+#[test]
+fn test_task_count_is_per_stage() -> Result<()> {
+    // task_count(stage) must report the backlog of the *named* stage, not a global total.
+    // A slow single-worker stage lets a backlog accumulate so we can observe a non-zero,
+    // stage-scoped count, while an unknown stage reports 0.
+    let pool = pipe![
+        slow_stage: (max_threads: 1) |req: String| -> String {
+            std::thread::sleep(Duration::from_millis(100));
+            Ok(req)
+        },
+    ]?;
+
+    // Allow the daemon to spin up.
+    std::thread::sleep(Duration::from_millis(200));
+
+    // Queue several requests; with max_threads:1 they back up in this stage.
+    for i in 0..5 {
+        pool.send(format!("req-{}", i))?;
+    }
+    // Give the daemon a loop tick to observe the backlog.
+    std::thread::sleep(Duration::from_millis(150));
+
+    let known = pool.task_count("slow_stage")?;
+    assert!(
+        known > 0,
+        "expected pending tasks for 'slow_stage', got {}",
+        known
+    );
+
+    // An unknown stage must report 0, proving the count is stage-scoped.
+    let unknown = pool.task_count("does-not-exist")?;
+    assert_eq!(unknown, 0);
+
+    // Drain.
+    std::thread::sleep(Duration::from_millis(900));
+    while pool.recv()?.is_some() {}
+
+    Ok(())
+}

@@ -284,7 +284,6 @@ Consultez le répertoire `examples/` dans le référentiel pour plus d'exemples 
 
 - `basic_sync_chain.rs` - Pipeline synchrone
 - `basic_async_chain.rs` - Pipeline asynchrone
-- `error_handling.rs` - Propagation des erreurs
 - `graceful_shutdown_drop.rs` - Nettoyage lors de l'abandon
 - `monitoring_thread_usage.rs` - API de surveillance
 - `tuple_payload_pipeline.rs` - Types de payload complexes

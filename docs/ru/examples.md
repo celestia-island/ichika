@@ -284,7 +284,6 @@ cargo run --example basic_async_chain --features tokio
 
 - `basic_sync_chain.rs` — Синхронный конвейер
 - `basic_async_chain.rs` — Асинхронный конвейер
-- `error_handling.rs` — Распространение ошибок
 - `graceful_shutdown_drop.rs` — Очистка при удалении
 - `monitoring_thread_usage.rs` — API мониторинга
 - `tuple_payload_pipeline.rs` — Сложные типы полезной нагрузки

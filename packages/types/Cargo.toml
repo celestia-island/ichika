@@ -16,15 +16,14 @@ crate-type = ["rlib"]
 _macros = { path = "../macros", version = "^0.1.1", package = "ichika-macros" }
 
 anyhow = { workspace = true }
-futures = { workspace = true }
 flume = { workspace = true }
+log = { workspace = true }
 
 num_cpus = { workspace = true, optional = true }
 tokio = { workspace = true, optional = true }
 async-std = { workspace = true, optional = true }
 
 [dev-dependencies]
-log = { workspace = true }
 env_logger = { workspace = true }
 rand = "^0.9"
 
