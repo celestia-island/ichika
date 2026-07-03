@@ -1,6 +1,8 @@
 <p align="center"><img src="docs/logo.webp" alt="Ichika" width="240" /></p>
 
-[![License: SySL](https://img.shields.io/badge/license-SySL%201.0-blue)](./LICENSE.txt)[![Crates.io Version](https://img.shields.io/crates/v/ichika)](https://docs.rs/ichika)
+[![License: SySL](https://img.shields.io/badge/license-SySL%201.0-blue)](./LICENSE)
+[![Crates.io Version](https://img.shields.io/crates/v/ichika)](https://crates.io/crates/ichika)
+[![docs.rs](https://docs.rs/ichika/badge.svg)](https://docs.rs/ichika)
 ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/celestia-island/ichika/test.yml)
 
 ## Introduction
@@ -13,34 +15,59 @@ The name `ichika` comes from the character [ichika](https://bluearchive.wiki/wik
 
 ## Quick Start
 
+A pipeline is a chain of closures: each stage receives the previous stage's
+output and returns the next stage's input (wrapped in `Ok`). The `pipe!` macro
+wires them together with a thread pool communicating over `flume` channels.
+
 ```rust
 use ichika::prelude::*;
 
-let pool = pipe! [
-  async |(name: String, url: String)| -> anyhow::Result<(String, bytes::Bytes))> {
-    Ok((name, id, reqwest::get(url).await?.bytes().await?))
-  },
-  |(name: String, buffer: bytes::Bytes)| -> anyhow::Result<(String, bytes::Bytes)> {
-    let mut decoder = flate2::read::GzDecoder::new();
-    let mut ret = vec![];
-    decoder.read_to_end(&mut ret)?;
-    Ok((name, ret.into()))
-  },
-  async |(name: String, data: bytes::Bytes)| -> anyhow::Result<()> {
-    tokio::fs::write(
-      format!("./{name}.dat"),
-      &data
-    );
+fn main() -> anyhow::Result<()> {
+    // A 2-stage pipeline: String -> usize -> String
+    let pool = pipe![
+        |req: String| -> usize { Ok(req.len()) },
+        |req: usize| -> String { Ok(req.to_string()) }
+    ]?;
+
+    for input in ["hello", "ichika", "pipe"] {
+        pool.send(input.to_string())?;
+    }
+
+    // Give the background pool time to drain its work.
+    std::thread::sleep(std::time::Duration::from_millis(200));
+
+    // `recv` is non-blocking and returns `None` when nothing is ready.
+    while let Some(output) = pool.recv()? {
+        println!("{output}");
+    }
+
     Ok(())
-  }
-]?;
-
-for i in 0..10 {
-  pool.send(("sth", vec![0; 32], "https://example.com".to_string()));
 }
+```
 
-for i in 0..10 {
-  pool.recv().await?;
+Stages may also be `async` (under the `tokio` feature, which is on by default):
+
+```rust
+use ichika::prelude::*;
+
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
+    let pool = pipe![
+        async |req: String| -> usize {
+            tokio::task::yield_now().await;
+            Ok(req.len())
+        },
+        |req: usize| -> String { Ok(req.to_string()) }
+    ]?;
+
+    pool.send("ichika".to_string())?;
+    tokio::time::sleep(tokio::time::Duration::from_millis(200)).await;
+
+    while let Some(output) = pool.recv()? {
+        println!("{output}");
+    }
+
+    Ok(())
 }
 ```
 
@@ -55,4 +82,4 @@ for i in 0..10 {
 
 ## License
 
-Licensed under the [Synthetic Source License (SySL), Version 1.0](./LICENSE.txt).
+Licensed under the [Synthetic Source License (SySL), Version 1.0](./LICENSE).
