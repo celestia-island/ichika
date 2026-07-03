@@ -2,12 +2,18 @@
 name = "ichika"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
 
 publish = true
 authors.workspace = true
 description = "A helper library for automatically constructing a thread pool that communicates via message pipes."
 license = "SySL-1.0"
 repository = "https://github.com/celestia-island/ichika"
+keywords = ["thread-pool", "pipeline", "flume", "concurrency", "pipe"]
+categories = ["concurrency", "asynchronous"]
+
+[package.metadata.docs.rs]
+all-features = true
 
 [lib]
 crate-type = ["rlib"]
