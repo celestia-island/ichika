@@ -197,10 +197,10 @@ pub(crate) fn generate_pool(
         if let Some(max_threads) = &global_constraints.max_threads {
             quote! { #max_threads }
         } else {
-            quote! { num_cpus::get() }
+            quote! { ::ichika::num_cpus::get() }
         }
     } else {
-        quote! { num_cpus::get() }
+        quote! { ::ichika::num_cpus::get() }
     };
 
     Ok(quote! {

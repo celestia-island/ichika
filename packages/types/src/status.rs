@@ -37,7 +37,7 @@ pub fn retry<T, E>() -> Status<T, E> {
 }
 
 /// Helper function to create a Status::RetryWith with explicit type parameters.
-pub fn retry_with<T: Clone>(policy: RetryPolicy, attempt: usize, value: T) -> Status<T, ()> {
+pub fn retry_with<T, E>(policy: RetryPolicy, attempt: usize, value: T) -> Status<T, E> {
     Status::RetryWith(policy, attempt, value)
 }
 

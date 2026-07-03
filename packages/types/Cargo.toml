@@ -19,7 +19,7 @@ anyhow = { workspace = true }
 flume = { workspace = true }
 log = { workspace = true }
 
-num_cpus = { workspace = true, optional = true }
+num_cpus = { workspace = true }
 tokio = { workspace = true, optional = true }
 async-std = { workspace = true, optional = true }
 
@@ -28,6 +28,6 @@ env_logger = { workspace = true }
 rand = "^0.9"
 
 [features]
-default = ["dep:num_cpus", "tokio"]
+default = ["tokio"]
 tokio = ["dep:tokio", "_macros/tokio"]
 async-std = ["dep:async-std", "_macros/async-std"]

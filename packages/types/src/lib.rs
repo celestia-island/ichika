@@ -9,6 +9,7 @@ pub use status::{retry, retry_with, RetryPolicy, Status};
 pub use anyhow;
 pub use flume;
 pub use log;
+pub use num_cpus;
 
 #[cfg(feature = "async-std")]
 pub use async_std;

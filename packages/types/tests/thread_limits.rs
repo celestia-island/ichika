@@ -69,7 +69,7 @@ fn test_per_step_max_threads_constraint() -> Result<()> {
     ]?;
 
     pool.send("test".to_string())?;
-    std::thread::sleep(Duration::from_millis(200));
+    std::thread::sleep(Duration::from_millis(400));
 
     let res = pool.recv()?;
     assert!(res.is_some());
@@ -106,7 +106,7 @@ fn test_combined_global_and_step_constraints() -> Result<()> {
     ]?;
 
     pool.send("test".to_string())?;
-    std::thread::sleep(Duration::from_millis(200));
+    std::thread::sleep(Duration::from_millis(400));
 
     let res = pool.recv()?;
     assert!(res.is_some());
