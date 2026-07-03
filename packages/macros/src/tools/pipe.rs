@@ -28,7 +28,13 @@ pub struct PipeMacros {
 impl Parse for PipeMacros {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         // Check for global constraints: (max_threads: 4, min_threads: 1)
-        let global_constraints = if input.peek(token::Paren) {
+        // A leading `(...)` is a *global* constraint only when it is followed by
+        // a comma. Without this, a per-step constraint on the very first closure
+        // — e.g. `(max_threads: 2) |req: String| -> usize { ... }` — would be
+        // swallowed as global and silently applied to every stage instead of
+        // just the first. The `(...)|...`/`(...)` `async` forms (no comma) are
+        // left for the closure parser to bind as a per-step constraint.
+        let global_constraints = if input.peek(token::Paren) && input.peek2(Token![,]) {
             let content;
             parenthesized!(content in input);
             let mut max_threads = None;

@@ -269,3 +269,86 @@ fn test_task_count_is_per_stage() -> Result<()> {
 
     Ok(())
 }
+
+#[test]
+fn test_leading_paren_with_comma_is_global() -> Result<()> {
+    // Regression guard for the disambiguation between a *global* constraint
+    // `(max_threads: N),` and a per-step constraint on the first closure
+    // `(max_threads: N) |req| ...`. A leading paren followed by a comma must be
+    // parsed as GLOBAL. With global max_threads:1 the whole pool is hard-capped
+    // at a single live worker at any instant, so thread_usage can never exceed 1
+    // no matter how large the backlog grows. A fast first stage feeding a slow
+    // second stage forces a backlog that an unconstrained pool would scale up
+    // for — so this invariant only holds when the cap is applied globally.
+    let pool = pipe![
+        (max_threads: 1),
+        |req: String| -> String { Ok(req) },
+        |req: String| -> usize {
+            std::thread::sleep(Duration::from_millis(40));
+            Ok(req.len())
+        }
+    ]?;
+
+    std::thread::sleep(Duration::from_millis(200));
+
+    for i in 0..16 {
+        pool.send(format!("req-{}", i))?;
+    }
+    std::thread::sleep(Duration::from_millis(350));
+
+    let usage = pool.thread_usage()?;
+    assert!(
+        usage <= 1,
+        "global max_threads:1 must cap total live workers, got {}",
+        usage
+    );
+
+    std::thread::sleep(Duration::from_millis(1500));
+    while pool.recv()?.is_some() {}
+
+    Ok(())
+}
+
+#[test]
+fn test_first_stage_constraint_is_not_global() -> Result<()> {
+    // Regression for the actual bug: a per-step constraint on the FIRST closure
+    // — `(max_threads: 1) |req| ...` with no comma — must bind to that stage
+    // only, NOT leak into a global cap. Here stage 1 is capped at 1 worker while
+    // stage 2 is unconstrained. We feed a fast stage 1 that floods a slow stage
+    // 2; if the cap were (incorrectly) global the pool would be hard-limited to
+    // one live worker total. On a multi-core host the unconstrained stage 2 must
+    // be free to scale beyond 1, which is impossible under a global cap.
+    let pool = pipe![
+        (max_threads: 1) |req: String| -> String { Ok(req) },
+        |req: String| -> usize {
+            std::thread::sleep(Duration::from_millis(40));
+            Ok(req.len())
+        }
+    ]?;
+
+    std::thread::sleep(Duration::from_millis(200));
+
+    for i in 0..16 {
+        pool.send(format!("req-{}", i))?;
+    }
+    std::thread::sleep(Duration::from_millis(350));
+
+    let usage = pool.thread_usage()?;
+    let cpus = std::thread::available_parallelism()
+        .map(|n| n.get())
+        .unwrap_or(1);
+    if cpus > 1 {
+        // Under the bug this is hard-capped at 1; under the fix stage 2 scales up.
+        assert!(
+            usage >= 2,
+            "per-step cap on stage 1 leaked into a global cap (usage={}, cpus={})",
+            usage,
+            cpus
+        );
+    }
+
+    std::thread::sleep(Duration::from_millis(1500));
+    while pool.recv()?.is_some() {}
+
+    Ok(())
+}
