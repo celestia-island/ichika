@@ -2,6 +2,8 @@
 
 set shell := ["bash", "-c"]
 
+import "./celestia-devtools.just"
+
 default:
     @just --list
 
