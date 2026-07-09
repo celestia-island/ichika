@@ -2,3 +2,10 @@ target
 Cargo.lock
 
 dist/
+
+# Editor / OS cruft
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db

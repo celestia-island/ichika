@@ -71,7 +71,7 @@ async fn main() -> anyhow::Result<()> {
 }
 ```
 
-## TODO
+## Features
 
 - [x] `async`, including `tokio` and `async-std`.
 - [x] Named task.
