@@ -9,6 +9,8 @@ authors.workspace = true
 description = "A helper library for automatically constructing a thread pool that communicates via message pipes."
 license = "SySL-1.0"
 repository = "https://github.com/celestia-island/ichika"
+keywords = ["thread-pool", "pipeline", "flume", "concurrency", "pipe"]
+categories = ["concurrency", "asynchronous"]
 
 [lib]
 proc-macro = true
