@@ -1,5 +1,9 @@
 <p align="center"><img src="https://raw.githubusercontent.com/celestia-island/ichika/master/docs/logo.webp" alt="Ichika" width="240" /></p>
 
+<h1 align="center">Ichika</h1>
+
+<p align="center"><strong>Thread-pool pipeline macros for Rust</strong></p>
+
 [![License: SySL](https://img.shields.io/badge/license-SySL%201.0-blue)](./LICENSE)
 [![Crates.io Version](https://img.shields.io/crates/v/ichika)](https://crates.io/crates/ichika)
 [![docs.rs](https://docs.rs/ichika/badge.svg)](https://docs.rs/ichika)
