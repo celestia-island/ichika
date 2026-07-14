@@ -2,11 +2,22 @@
 
 > 本文件由自动化扫描于 **2026-07-04** 生成，记录项目当前状态、近期进展与后续计划。
 
+## Refresh log 2026-07-14
+
+- **当前分支**：`dev` · 领先 `origin/dev` 0 commits · 工作区干净
+- **最近提交**：`🔧 Pin script recipes to the resolved Git Bash to survive WSL shadowing.` (`f3f2c9c`)
+- **未提交改动**：无
+- **后续动作**：
+  1. 验证 `🔧 Pin script recipes` 提交后，ichika workspace（`ichika` / `ichika-macros`）的 just 配方在 WSL 环境下使用解析到的 Git Bash 路径（而非被 WSL 影线的 shim）能稳定跑通 `just lint` / `just test`；如 macros 宏展开路径仍报 Git 相关错误，续在 `dev` 分支上补丁。
+  2. 跟进跨仓 `[patch]` 收敛到 `~/.cargo/config.toml`（见 `entelecheia/PLAN.md` §6 跨仓依赖约定）后，ichika workspace `Cargo.toml` 中对 entelecheia / hifumi 等生态内 crate 的内联 `[patch.*]` 是否需移除。
+  3. 在顶层 `patches/` 长期方案中登记 ichika 线程池/宏展开相关的 flume 上游兼容检查点（避免 flume 升级时无声破坏）。
+- **跨仓依赖**：上游依据 → `entelecheia/PLAN.md`；ichika 是 entelecheia 生态中负责线程池 / 宏的子仓，与 hifumi（构建脚本）、malkuth（leader/lease 同属并发原语）等 sibling 仓共享 workspace 风格。
+
 ## 1. 项目概述
 
 - **名称**：`ichika`
 - **简介**：基于 flume 的线程池自动构造辅助库。
-- **远程仓库**：git@github.com:celestia-island/ichika.git
+- **远程仓库**：<git@github.com>:celestia-island/ichika.git
 - **技术栈**：Rust（workspace：`ichika` / `ichika-macros`）
 - **类别**：rust-lib
 
