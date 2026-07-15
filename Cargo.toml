@@ -18,7 +18,7 @@ async-trait = "^0.1"
 derive_more = { version = "^1", features = ["full"] }
 
 futures = "^0.3"
-flume = "^0.11"
+flume = "^0.12"
 
 num_cpus = "^1"
 tokio = { version = "^1", optional = true }
