@@ -1,0 +1,8 @@
+[site]
+title = "Ichika"
+description = "A helper library for automatically constructing a thread pool that communicates via message pipes."
+
+cname = "ichika.docs.celestia.world"
+[languages]
+default = "en"
+order = ["en", "zhs", "zht", "ja", "ko", "fr", "es", "ru", "ar"]

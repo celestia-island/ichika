@@ -1,0 +1,39 @@
+[package]
+name = "ichika"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+publish = true
+authors.workspace = true
+description = "A helper library for automatically constructing a thread pool that communicates via message pipes."
+license = "SySL-1.0"
+repository = "https://github.com/celestia-island/ichika"
+keywords = ["thread-pool", "pipeline", "flume", "concurrency", "pipe"]
+categories = ["concurrency", "asynchronous"]
+
+[package.metadata.docs.rs]
+all-features = true
+
+[lib]
+crate-type = ["rlib"]
+
+[dependencies]
+_macros = { path = "../macros", version = "^0.1.1", package = "ichika-macros" }
+
+anyhow = { workspace = true }
+flume = { workspace = true }
+log = { workspace = true }
+
+num_cpus = { workspace = true }
+tokio = { workspace = true, optional = true }
+async-std = { workspace = true, optional = true }
+
+[dev-dependencies]
+env_logger = { workspace = true }
+rand = "^0.9"
+
+[features]
+default = ["tokio"]
+tokio = ["dep:tokio", "_macros/tokio"]
+async-std = ["dep:async-std", "_macros/async-std"]
