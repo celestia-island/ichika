@@ -1,4 +1,4 @@
-<p align="center"><img src="https://docs.celestia.world/res/logo/ichika.webp" alt="Ichika" width="240" /></p>
+<p align="center"><img src="https://raw.githubusercontent.com/celestia-island/docs.celestia.world/dev/res/logo/ichika.webp" alt="Ichika" width="240" /></p>
 
 <h1 align="center">Ichika</h1>
 
