@@ -15,7 +15,7 @@ crate-type = ["rlib", "cdylib"]
 [dependencies]
 anyhow = "^1"
 async-trait = "^0.1"
-derive_more = { version = "^1", features = ["full"] }
+derive_more = { version = "^2", features = ["full"] }
 
 futures = "^0.3"
 flume = "^0.11"
