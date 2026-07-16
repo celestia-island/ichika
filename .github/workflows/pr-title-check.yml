@@ -14,7 +14,6 @@ on:
 jobs:
   validate:
     runs-on: ubuntu-latest
-    continue-on-error: true
     steps:
       - name: Install noa
         id: install
@@ -26,9 +25,14 @@ jobs:
           else
             URL="https://github.com/celestia-island/noa/releases/download/${VERSION}/noa-x86_64-unknown-linux-gnu"
           fi
-          curl -fsSL "$URL" -o /usr/local/bin/noa
-          chmod +x /usr/local/bin/noa
+          if curl -fsSL "$URL" -o /usr/local/bin/noa; then
+            chmod +x /usr/local/bin/noa
+            echo "installed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "noa release not found, skipping PR title check"
+            echo "installed=false" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Check PR title
-        if: success()
+        if: steps.install.outputs.installed == 'true'
         run: noa hook validate-msg -m "${{ github.event.pull_request.title }}" -p celestia
