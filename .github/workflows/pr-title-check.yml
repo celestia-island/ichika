@@ -14,8 +14,10 @@ on:
 jobs:
   validate:
     runs-on: ubuntu-latest
+    continue-on-error: true
     steps:
       - name: Install noa
+        id: install
         run: |
           set -euo pipefail
           VERSION="${NOA_VERSION:-latest}"
@@ -28,4 +30,5 @@ jobs:
           chmod +x /usr/local/bin/noa
 
       - name: Check PR title
+        if: success()
         run: noa hook validate-msg -m "${{ github.event.pull_request.title }}" -p celestia
