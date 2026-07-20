@@ -10,18 +10,24 @@ panic = "abort"
 
 [workspace.package]
 authors = ["langyo <langyo.china@gmail.com>"]
+
 version = "0.1.1"
 edition = "2021"
 rust-version = "1.85"
 
 [workspace.dependencies]
 anyhow = "^1"
+
 log = "^0.4"
 env_logger = "^0.11"
+
 flume = "^0.11"
+
 num_cpus = "^1"
-tokio = { version = "^1", features = ["rt", "rt-multi-thread", "macros", "sync", "time"] }
-async-trait = "^0.1"
-derive_more = { version = "^1", features = ["full"] }
-futures = "^0.3"
-async-std = { version = "^1", features = ["attributes"] }
+tokio = { version = "^1", features = [
+  "rt",
+  "rt-multi-thread",
+  "macros",
+  "time",
+] }
+async-std = "^1"
