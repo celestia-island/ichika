@@ -16,12 +16,11 @@ categories = ["concurrency", "asynchronous"]
 proc-macro = true
 
 [dependencies]
-anyhow = { workspace = true }
 
-syn = { version = "^2", features = ["full", "extra-traits"] }
+anyhow = { workspace = true }
 proc-macro2 = { version = "^1", features = ["span-locations"] }
 quote = "^1"
-
+syn = { version = "^2", features = ["full", "extra-traits"] }
 [features]
 tokio = []
 async-std = []

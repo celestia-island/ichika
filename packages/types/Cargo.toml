@@ -19,20 +19,19 @@ all-features = true
 crate-type = ["rlib"]
 
 [dependencies]
+
 _macros = { path = "../macros", version = "^0.1.1", package = "ichika-macros" }
 
 anyhow = { workspace = true }
+async-std = { workspace = true, optional = true }
 flume = { workspace = true }
 log = { workspace = true }
-
 num_cpus = { workspace = true }
 tokio = { workspace = true, optional = true }
-async-std = { workspace = true, optional = true }
-
 [dev-dependencies]
+
 env_logger = { workspace = true }
 rand = "^0.9"
-
 [features]
 default = ["tokio"]
 tokio = ["dep:tokio", "_macros/tokio"]
