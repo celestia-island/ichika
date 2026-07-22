@@ -1,4 +1,4 @@
-# ThreadPool Trait
+# ThreadPool 特征
 
 `ThreadPool` trait 定义了由 `pipe!` 宏创建的所有管道池的接口。
 
