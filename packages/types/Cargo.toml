@@ -31,7 +31,7 @@ async-std = { workspace = true, optional = true }
 
 [dev-dependencies]
 env_logger = { workspace = true }
-rand = "^0.9"
+rand = "^0.10"
 
 [features]
 default = ["tokio"]
