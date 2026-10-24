@@ -20,6 +20,7 @@ jobs:
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     name: Format
     runs-on: [self-hosted, linux, x64, local]
+    timeout-minutes: 300
 
     steps:
       - uses: actions/checkout@v7
