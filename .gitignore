@@ -1,8 +1,8 @@
+# Rust build artifacts
 target
 Cargo.lock
-<<<<<<< HEAD
-=======
 
+# Build output
 dist/
 
 # Editor / OS cruft
@@ -15,4 +15,3 @@ Thumbs.db
 # celestia-devtools: staged-on-demand shared justfile recipes (just fetch)
 /.just/
 /celestia-devtools.just
->>>>>>> origin/dev
