@@ -16,7 +16,7 @@ jobs:
     name: Family dependency identity
     uses: celestia-island/celestia-devtools/.github/workflows/family-versions.yml@2e76d373762dc6b36c1ab7625c1c34842c28ad4a
     with:
-      devtools-ref: v2026.11
+      devtools-ref: 5f280203dd6794b9e631978c5984d5a4d4f801b1
 
   clippy:
     # Fork pull requests pay for their own CI: this job is heavy (it compiles,
