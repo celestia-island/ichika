@@ -1,10 +1,9 @@
 name: CI Cache Policy
 
 on:
-  pull_request:
-    types: [opened, reopened, ready_for_review, synchronize]
-  merge_group:
-    types: [checks_requested]
+  workflow_dispatch:
+  push:
+    branches: [master]
 
 jobs:
   cache-policy:
