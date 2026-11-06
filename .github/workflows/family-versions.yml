@@ -8,6 +8,6 @@ on:
   workflow_dispatch:
 jobs:
   family-versions:
-    uses: celestia-island/celestia-devtools/.github/workflows/family-versions.yml@e66e9a86b464c197300795b315f72f9c079402f5
+    uses: celestia-island/celestia-devtools/.github/workflows/family-versions.yml@ecbfc3d99f74f49c0955e90b096cccfe807a6191
     with:
-      devtools-ref: e66e9a86b464c197300795b315f72f9c079402f5
+      devtools-ref: ecbfc3d99f74f49c0955e90b096cccfe807a6191
