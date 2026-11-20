@@ -14,7 +14,6 @@ jobs:
         with:
           fetch-depth: 0
       - name: Ensure the release tag is on master
-        if: github.event_name == 'push' && !github.event.deleted
         shell: bash
         run: |
           git fetch --no-tags --prune origin +refs/heads/master:refs/remotes/origin/master
