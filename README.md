@@ -1,4 +1,4 @@
-<img src="splash.png" alt="ichika" />
+<img src="https://raw.githubusercontent.com/celestia-island/celestia-island.github.io/main/res/logos/ichika.webp" alt="ichika" />
 
 ![Crates.io License](https://img.shields.io/crates/l/ichika)
 [![Crates.io Version](https://img.shields.io/crates/v/ichika)](https://docs.rs/ichika)
